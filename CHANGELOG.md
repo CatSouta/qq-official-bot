@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.5](https://github.com/zhinjs/qq-official-bot/compare/v1.0.4...v1.0.5) (2025-05-16)
+
+
+### Bug Fixes
+
+* 修复webhook未正确响应事件 ([1f877ea](https://github.com/zhinjs/qq-official-bot/commit/1f877eaba1cd61a05bf172d40e6b68497a691345))
+* 修复webhook未正确响应事件 ([3bdc38c](https://github.com/zhinjs/qq-official-bot/commit/3bdc38ce257d5495a3188ebc516b4ad1f192d5f9))
+* 文档错误，类型错误 ([f00b11a](https://github.com/zhinjs/qq-official-bot/commit/f00b11a9c78910ffa9951bf3d2851f78e9c2300c))
+
 ## [1.0.4](https://github.com/zhinjs/qq-official-bot/compare/v1.0.3...v1.0.4) (2024-12-27)
 
 

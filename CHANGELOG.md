@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.7](https://github.com/zhinjs/qq-official-bot/compare/v1.0.6...v1.0.7) (2025-06-02)
+
+
+### Bug Fixes
+
+* 更新axios版本 ([fd63426](https://github.com/zhinjs/qq-official-bot/commit/fd63426136e2459551390aaf8e3189b2429884a0))
+
 ## [1.0.6](https://github.com/zhinjs/qq-official-bot/compare/v1.0.5...v1.0.6) (2025-06-02)
 
 

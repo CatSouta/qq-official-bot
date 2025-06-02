@@ -1,117 +1,219 @@
 ---
 layout: doc
 ---
+
 # 快速开始
-由于 `qq-official-bot` 是基于 `NodeJS` 编写，要使用 "qq-official-bot"，你可以按照以下步骤进行操作：
-## 1. 安装 Node.js
-首先，确保你的计算机上已经安装了 Node.js。你可以在 Node.js 的官方网站上下载并安装适合你操作系统的版本。
-## 2. 创建新项目
-在你的项目文件夹中，打开终端或命令行界面，并运行以下命令来初始化一个新的 Node.js 项目：
-```shell
-npm init # 这将会引导你创建一个新的 `package.json` 文件，用于管理你的项目依赖和配置。
+
+`qq-official-bot` 是基于 Node.js 和 TypeScript 开发的现代化 QQ 机器人 SDK，采用模块化架构设计。
+
+## 📋 环境要求
+
+- **Node.js**: 16.0.0 或更高版本
+- **TypeScript**: 4.5.0 或更高版本（可选，但推荐）
+
+## 🚀 安装
+
+### 1. 初始化项目
+
+```bash
+mkdir my-qq-bot
+cd my-qq-bot
+npm init -y
 ```
-## 3. 安装 `qq-official-bot` 包
-运行以下命令来安装 `qq-official-bot` 包:
-```shell
+
+### 2. 安装依赖
+
+```bash
+# 使用 npm
 npm install qq-official-bot
+
+# 使用 yarn
+yarn add qq-official-bot
+
+# 使用 pnpm
+pnpm add qq-official-bot
 ```
-## 4. 编写代码
-创建一个 JavaScript 或 TypeScript 文件（例如 bot.js），并在其中编写你的 QQ 群机器人代码。你可以使用下面的示例代码作为起点：
 
+### 3. TypeScript 支持（推荐）
 
-### 4.1 link with websocket
-```js
-const {Bot} = require('qq-official-bot')
-// 创建机器人
+```bash
+npm install -D typescript @types/node
+npx tsc --init
+```
+
+## 🎯 快速上手
+
+### WebSocket 连接模式
+
+```typescript
+import { Bot, ReceiverMode } from 'qq-official-bot'
+
 const bot = new Bot({
-	appid: '', // qq机器人的appID (必填)
-	secret: '', // qq机器人的secret (必填)
-	sandbox: true, // 是否是沙箱环境 默认 false
-	removeAt: true, // 移除第一个at 默认 false
-	logLevel: 'info', // 日志等级 默认 info
-	maxRetry: 10, // 最大重连次数 默认 10
-	intents: [
-		'GROUP_AT_MESSAGE_CREATE', // 群聊@消息事件 没有群权限请注释
-		'C2C_MESSAGE_CREATE', // 私聊事件 没有私聊权限请注释
-		'GUILD_MESSAGES', // 私域机器人频道消息事件 公域机器人请注释
-		'PUBLIC_GUILD_MESSAGES', // 公域机器人频道消息事件 私域机器人请注释
-		'DIRECT_MESSAGE', // 频道私信事件
-        'MESSAGE_AUDIT', // 消息审核事件
-		'GUILD_MESSAGE_REACTIONS', // 频道消息表态事件
-		'GUILDS', // 频道变更事件
-		'GUILD_MEMBERS', // 频道成员变更事件
-		'DIRECT_MESSAGE', // 频道私信事件
-	], // (必填)
-	mode:'websocket',
+    appid: 'your_app_id',           // QQ 机器人的 App ID
+    secret: 'your_app_secret',      // QQ 机器人的 App Secret
+    sandbox: false,                 // 是否为沙箱环境
+    removeAt: true,                 // 自动移除消息中的 @机器人
+    logLevel: 'info',               // 日志级别
+    maxRetry: 10,                   // 最大重连次数
+    intents: [
+        'GUILD_MESSAGES',           // 频道消息事件
+        'GUILD_MESSAGE_REACTIONS',  // 频道消息表态事件
+        'DIRECT_MESSAGE',           // 频道私信事件
+        'GROUP_AT_MESSAGE_CREATE',  // 群聊@消息事件
+        'C2C_MESSAGE_CREATE',       // 私聊消息事件
+    ],
+    mode: ReceiverMode.WEBSOCKET,   // WebSocket 连接模式
 })
+
+// 监听消息事件
+bot.on('message', async (event) => {
+    console.log('收到消息:', event.content)
+    
+    if (event.content === 'hello') {
+        await event.reply('Hello! 我是 QQ 机器人 🤖')
+    }
+})
+
 // 启动机器人
 bot.start()
 ```
-### 4.2 link with webhook
-```js
-const {Bot} = require('qq-official-bot')
-// 创建机器人
-const bot = new Bot({
-	appid: '', // qq机器人的appID (必填)
-	secret: '', // qq机器人的secret (必填)
-	sandbox: true, // 是否是沙箱环境 默认 false
-	removeAt: true, // 移除第一个at 默认 false
-	logLevel: 'info', // 日志等级 默认 info
-	maxRetry: 10, // 最大重连次数 默认 10
-	intents: [
-		'GROUP_AT_MESSAGE_CREATE', // 群聊@消息事件 没有群权限请注释
-		'C2C_MESSAGE_CREATE', // 私聊事件 没有私聊权限请注释
-		'GUILD_MESSAGES', // 私域机器人频道消息事件 公域机器人请注释
-		'PUBLIC_GUILD_MESSAGES', // 公域机器人频道消息事件 私域机器人请注释
-		'DIRECT_MESSAGE', // 频道私信事件
-        'MESSAGE_AUDIT', // 消息审核事件
-		'GUILD_MESSAGE_REACTIONS', // 频道消息表态事件
-		'GUILDS', // 频道变更事件
-		'GUILD_MEMBERS', // 频道成员变更事件
-		'DIRECT_MESSAGE', // 频道私信事件
-	], // (必填)
-	mode:'webhook',
-    port: 3000, // webhook监听端口
-    path: '/webhook', // webhook监听路径
-})
-// 启动机器人
-bot.start()
-```
-### 4.3 link with express/koa
-```js
-const {Bot} = require('qq-official-bot')
-const express = require('express')
-// 创建机器人
-const bot = new Bot({
-	appid: '', // qq机器人的appID (必填)
-	secret: '', // qq机器人的secret (必填)
-	sandbox: true, // 是否是沙箱环境 默认 false
-	removeAt: true, // 移除第一个at 默认 false
-	logLevel: 'info', // 日志等级 默认 info
-	maxRetry: 10, // 最大重连次数 默认 10
-	intents: [
-		'GROUP_AT_MESSAGE_CREATE', // 群聊@消息事件 没有群权限请注释
-		'C2C_MESSAGE_CREATE', // 私聊事件 没有私聊权限请注释
-		'GUILD_MESSAGES', // 私域机器人频道消息事件 公域机器人请注释
-		'PUBLIC_GUILD_MESSAGES', // 公域机器人频道消息事件 私域机器人请注释
-		'DIRECT_MESSAGE', // 频道私信事件
-        'MESSAGE_AUDIT', // 消息审核事件
-		'GUILD_MESSAGE_REACTIONS', // 频道消息表态事件
-		'GUILDS', // 频道变更事件
-		'GUILD_MEMBERS', // 频道成员变更事件
-		'DIRECT_MESSAGE', // 频道私信事件
-	], // (必填)
-	mode:'middleware',
-    applacation:'express', // express/koa
-})
-// 启动机器人
-bot.start()
-express()
-    .use(bot.middleware)
-    .listen(3000)
 
+### Webhook 连接模式
+
+```typescript
+import { Bot, ReceiverMode } from 'qq-official-bot'
+
+const bot = new Bot({
+    appid: 'your_app_id',
+    secret: 'your_app_secret',
+    sandbox: false,
+    intents: ['GUILD_MESSAGES', 'DIRECT_MESSAGE'],
+    mode: ReceiverMode.WEBHOOK,
+    port: 3000,                     // Webhook 监听端口
+    path: '/webhook',               // Webhook 路径
+})
+
+bot.on('message', async (event) => {
+    await event.reply(`你说: ${event.content}`)
+})
+
+bot.start()
 ```
-- 注意：在配置中，你需要填写你的 `appid`和 `secret`。请确保妥善保管你的账号信息，并遵循相关使用条款和隐私政策。
-- 示例中的配置仅为基础配置，更多配置信息请查看 [配置项](../config.md) 章节
+
+### Express/Koa 中间件模式
+
+```typescript
+import { Bot, ReceiverMode, ApplicationPlatform } from 'qq-official-bot'
+import express from 'express'
+
+const bot = new Bot({
+    appid: 'your_app_id',
+    secret: 'your_app_secret',
+    sandbox: false,
+    intents: ['GUILD_MESSAGES'],
+    mode: ReceiverMode.MIDDLEWARE,
+    application: ApplicationPlatform.EXPRESS, // 或 ApplicationPlatform.KOA
+})
+
+const app = express()
+
+// 使用机器人中间件
+app.use('/bot', bot.middleware)
+
+bot.on('message', async (event) => {
+    await event.reply('通过中间件接收到消息!')
+})
+
+app.listen(3000, () => {
+    console.log('服务器启动在端口 3000')
+})
+
+bot.start()
+```
+
+## 🔧 使用服务模块
+
+新版本采用服务模块化设计，每个服务负责特定的功能领域：
+
+```typescript
+// 使用频道服务
+const guilds = await bot.guildService.getList()
+if (guilds.success) {
+    console.log('频道列表:', guilds.data)
+}
+
+// 使用消息服务
+const result = await bot.messageService.sendGuildMessage(
+    channel_id, 
+    'Hello from MessageService!'
+)
+
+// 使用成员管理服务
+await bot.memberService.muteGuildMember(guild_id, user_id, 600)
+
+// 使用权限管理服务
+const permissions = await bot.permissionService.getChannelUserPermissions(
+    channel_id, 
+    user_id
+)
+```
+
+## 📝 消息构建
+
+### 文本消息
+
+```typescript
+// 简单文本
+await event.reply('Hello World!')
+
+// 带格式的文本
+await event.reply('**粗体文本** 和 *斜体文本*')
+```
+
+### 富媒体消息
+
+```typescript
+import { segment } from 'qq-official-bot'
+
+// 图片消息
+await event.reply([
+    segment.text('看看这张图片:'),
+    segment.image('https://example.com/image.jpg')
+])
+
+// 混合消息
+await event.reply([
+    segment.text('用户信息:'),
+    segment.at(user_id),
+    segment.text(' 欢迎加入!')
+])
+```
+
+## 🎉 运行项目
+
+```bash
+# TypeScript
+npx tsx bot.ts
+
+# 或编译后运行
+npx tsc
+node dist/bot.js
+
+# JavaScript
+node bot.js
+```
+
+## ⚠️ 注意事项
+
+1. **凭证安全**: 请妥善保管你的 `appid` 和 `secret`，不要在代码中硬编码
+2. **权限配置**: 确保在 QQ 开放平台配置了正确的机器人权限
+3. **事件订阅**: 根据你的需求配置 `intents` 数组
+4. **环境区分**: 开发时使用 `sandbox: true`，生产环境使用 `sandbox: false`
+
+## 📚 下一步
+
+- 查看 [配置文档](../config.md) 了解更多配置选项
+- 查看 [API 参考](../api/) 了解详细的 API 使用方法
+- 查看 [接口文档](../interface/) 了解类型定义
 
 

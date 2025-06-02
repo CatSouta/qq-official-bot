@@ -504,19 +504,21 @@ export class MessageReactionNoticeEvent extends NoticeEvent{
         this.emoji = payload.emoji
     }
 }
-export namespace MessageReactionNoticeEvent{
+export namespace MessageReactionNoticeEvent {
     export const parse: EventParser = function (this: Bot, event, payload) {
         switch (event) {
-            case "notice.reaction.add":
-                const addEvent=new MessageReactionNoticeEvent(this,'add', payload)
-                this.logger.info(`用户:${addEvent.user_id}创建了表情表态`)
-                return addEvent
-            case 'notice.reaction.remove':
-                const removeEvent=new MessageReactionNoticeEvent(this,'remove', payload)
-                this.logger.info(`用户:${removeEvent.user_id}删除了表情表态`)
-                return removeEvent
+            case "notice.reaction.add": {
+                const addEvent = new MessageReactionNoticeEvent(this, 'add', payload);
+                this.logger.info(`用户:${addEvent.user_id}创建了表情表态`);
+                return addEvent;
+            }
+            case 'notice.reaction.remove': {
+                const removeEvent = new MessageReactionNoticeEvent(this, 'remove', payload);
+                this.logger.info(`用户:${removeEvent.user_id}删除了表情表态`);
+                return removeEvent;
+            }
             default:
-                throw new Error(`can not parse event ${event}`)
+                throw new Error(`can not parse event ${event}`);
         }
-    }
+    };
 }

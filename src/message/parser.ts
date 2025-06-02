@@ -1,11 +1,10 @@
-import {MessageElem, Sendable} from "@/elements";
-import {QQBot} from "@/qqBot";
-import {Dict} from "@/types";
-import {trimQuote} from "@/utils";
-import {Bot} from "./bot";
-import {User} from "@/entries/user";
-import {Receiver} from "@/receiver";
-import {ApplicationPlatform} from "@/receivers/webhook";
+import type {MessageElem, Sendable} from "@/elements";
+import {Bot} from "@";
+import type {Dict} from "@/types";
+import {trimQuote} from "@/utils/string";
+import type {User} from "@/entries/user";
+import type {ApplicationPlatform} from "@/receivers/middleware";
+import {ReceiverMode} from "@/receivers/base";
 
 export class Message {
     message_type: Message.Type
@@ -23,18 +22,20 @@ export class Message {
     sender: Message.Sender
     user_id: string
 
-    constructor(public bot: Bot<Receiver.ReceiveMode,ApplicationPlatform>, attrs: Dict) {
-        const {message_reference,...other_attrs} = attrs
-        Object.assign(this, other_attrs)
-        if(message_reference) this.source={
-            id:message_reference.message_id,
-            message_id: message_reference.message_id,
+    constructor(public readonly bot: Bot<ReceiverMode,ApplicationPlatform>, attrs: Dict) {
+        const {message_reference, ...otherAttrs} = attrs;
+        Object.assign(this, otherAttrs);
+        if (message_reference) {
+            this.source = {
+                id: message_reference.message_id,
+                message_id: message_reference.message_id,
+            };
         }
     }
 
-    raw_message: string
-    source?: { message_id: string,id:string }
-    message: Sendable
+    readonly raw_message: string;
+    readonly source?: { message_id: string; id: string };
+    readonly message: Sendable;
 
 
     get [Symbol.unscopables]() {
@@ -47,7 +48,7 @@ export class Message {
     toJSON() {
         return Object.fromEntries(Object.keys(this)
             .filter(key => {
-                return typeof this[key] !== "function" && !(this[key] instanceof QQBot)
+                return typeof this[key] !== "function" && !(this[key] instanceof Bot)
             })
             .map(key => [key, this[key]])
         )
@@ -78,7 +79,7 @@ export namespace Message {
     export type Type = 'private' | 'group' | 'guild'
     export type SubType = 'direct'|'friend'|'temp'|'normal'
 
-    export function parse(this: QQBot, payload: Dict) {
+    export function parse(this: Bot<ReceiverMode>, payload: Dict) {
         let template = payload.content || ''
         let result: MessageElem[] = []
         let brief: string = ''

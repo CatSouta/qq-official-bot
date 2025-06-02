@@ -1,13 +1,12 @@
-import {QQBot} from "./qqBot";
-import {Channel} from './entries/channel'
-import {Guild} from "./entries/guild";
+import {Client} from "./client";
+
+import {Guild} from "@/entries";
 import {
     Announce,
     ApiBaseInfo,
     ApiPermissionDemand,
     AudioControl,
     ChannelMemberPermissions,
-    ChannelRolePermissions,
     ChannelUpdateInfo,
     DMS,
     EmojiType,
@@ -20,22 +19,64 @@ import {
     UpdatePermissionParams
 } from "@/types";
 import {Quotable, Sendable} from "@/elements";
-import {UnsupportedMethodError} from "@/constans";
-import {Sender} from "@/entries/sender";
+import {UnsupportedMethodError} from "./constants";
 import {AxiosResponse} from "axios";
 import {GuildMember} from "@/entries/guildMember";
 import {User} from "@/entries/user";
 import {ActionNoticeEvent} from "@/events/notice";
 import {GuildMessageEvent, PrivateMessageEvent} from "./events";
-import {Receiver} from "@/receiver";
-import {ApplicationPlatform, Middleware} from "@/receivers/webhook";
-import {ResolveReceiver} from "@/sessionManager";
+import {ApplicationPlatform,Middleware,ReceiverMode} from "@/receivers";
+import {ResolveReceiver} from "@/receivers";
+
+// 导入重构后的消息系统
+import { MessageSender, MessageBuilder, FileProcessor } from "@/message";
+import { EventDispatcher } from "./events/event-dispatcher";
+import { Channel } from "@/entries";
+
+// 导入服务模块
+import {
+    GuildService,
+    ChannelService,
+    MessageService,
+    MemberService,
+    PermissionService,
+    ReactionService,
+    ScheduleService,
+    ThreadService,
+    AudioService,
+    BotService
+} from "@/services";
 
 
-export class Bot<T extends Receiver.ReceiveMode=Receiver.ReceiveMode,M extends ApplicationPlatform=ApplicationPlatform> extends QQBot<T,M> {
+export class Bot<T extends ReceiverMode=ReceiverMode,M extends ApplicationPlatform=ApplicationPlatform> extends Client<T,M> {
+
+    // 重构后的组件实例
+    public readonly messageBuilder: MessageBuilder;
+    public readonly fileProcessor: FileProcessor = new FileProcessor(this);
+    public readonly eventDispatcher: EventDispatcher = new EventDispatcher(this);
+
+    // 服务实例
+    public readonly guildService: GuildService = new GuildService(this);
+    public readonly channelService: ChannelService = new ChannelService(this);
+    public readonly messageService: MessageService = new MessageService(this);
+    public readonly memberService: MemberService = new MemberService(this);
+    public readonly permissionService: PermissionService = new PermissionService(this);
+    public readonly reactionService: ReactionService = new ReactionService(this);
+    public readonly scheduleService: ScheduleService = new ScheduleService(this);
+    public readonly threadService: ThreadService = new ThreadService(this);
+    public readonly audioService: AudioService = new AudioService(this);
+    public readonly botService: BotService = new BotService(this);
 
     constructor(config: Bot.Config<T,M>) {
         super(config)
+
+        // 获取基础URL
+        const baseUrl = this.config.sandbox ? 'https://sandbox.api.sgroup.qq.com' : 'https://api.sgroup.qq.com';
+
+        // 初始化重构后的组件
+        this.messageBuilder = new MessageBuilder(this.config.appid, baseUrl);
+        // 初始化事件调度器
+        this.eventDispatcher = new EventDispatcher(this);
         const nodeVersion=parseInt(process.version.slice(1))
         if(nodeVersion<16){
             this.logger.warn(`你的node版本(${process.version}) <16，可能会出现不可预测的错误，请升级node版本，为确保服务正常运行，请升级node版本`)
@@ -43,17 +84,28 @@ export class Bot<T extends Receiver.ReceiveMode=Receiver.ReceiveMode,M extends A
         process.on("uncaughtException",e=>{
             this.logger.debug(e.stack)
         })
+
+        // 设置事件调度器的错误处理
+        this.setupEventDispatcherErrorHandling();
+    }
+
+    /**
+     * 设置事件调度器的错误处理
+     */
+    private setupEventDispatcherErrorHandling(): void {
+        this.eventDispatcher.on('error', (error: Error) => {
+            this.logger.error('[EVENT] 事件处理错误:', error);
+        });
     }
     get middleware():Middleware<M>{
         if(this.config.mode!=='middleware') throw new Error('receiver mode is not middleware')
-        return (this.receiver as ResolveReceiver<'middleware', M>).handler.middleware()
+        return (this.receiver as ResolveReceiver<ReceiverMode.MIDDLEWARE, M>).handler.middleware()
     }
     /**
      * 获取机器人信息
      */
     async getSelfInfo() {
-        const {data: result} = await this.request.get<Bot.Info>('/users/@me')
-        return result
+        return this.botService.getSelfInfo()
     }
 
     /**
@@ -62,8 +114,7 @@ export class Bot<T extends Receiver.ReceiveMode=Receiver.ReceiveMode,M extends A
      * @param role_id 角色id
      */
     async getChannelPermissionOfRole(channel_id: string, role_id: string) {
-        const {data: result} = await this.request.get<ChannelRolePermissions>(`/channels/${channel_id}/roles/${role_id}/permissions`)
-        return result
+        return this.permissionService.getChannelRolePermission(channel_id, role_id)
     }
 
     /**
@@ -489,10 +540,11 @@ export class Bot<T extends Receiver.ReceiveMode=Receiver.ReceiveMode,M extends A
      * @param source
      */
     async sendPrivateMessage(user_id: string, message: Sendable, source?: Quotable) {
-        const sender = new Sender(this, `/v2/users/${user_id}`, message, source)
-        const result = await sender.sendMsg()
-        this.logger.info(`send to User(${user_id}): ${sender.brief}`)
-        return result
+        const baseUrl = this.config.sandbox ? 'https://sandbox.api.sgroup.qq.com' : 'https://api.sgroup.qq.com';
+        const messageSender = new MessageSender(this, `/v2/users/${user_id}`, source);
+        const result = await messageSender.send(message);
+        this.logger.info(`send to User(${user_id}): ${await messageSender.getBrief(message)}`);
+        return result;
     }
     /**
      * 撤回私聊消息
@@ -510,10 +562,10 @@ export class Bot<T extends Receiver.ReceiveMode=Receiver.ReceiveMode,M extends A
      * @param source
      */
     async sendGroupMessage(group_id: string, message: Sendable, source?: Quotable) {
-        const sender = new Sender(this, `/v2/groups/${group_id}`, message, source)
-        const result = await sender.sendMsg()
-        this.logger.info(`send to Group(${group_id}): ${sender.brief}`)
-        return result
+        const messageSender = new MessageSender(this, `/v2/groups/${group_id}`, source);
+        const result = await messageSender.send(message);
+        this.logger.info(`send to Group(${group_id}): ${await messageSender.getBrief(message)}`);
+        return result;
     }
     /**
      * 撤回群消息
@@ -583,10 +635,10 @@ export class Bot<T extends Receiver.ReceiveMode=Receiver.ReceiveMode,M extends A
      * @param source
      */
     async sendDirectMessage(guild_id: string, message: Sendable, source?: Quotable) {
-        const sender = new Sender(this, `/dms/${guild_id}`, message, source)
-        const result = await sender.sendMsg()
-        this.logger.info(`send to Direct(${guild_id}): ${sender.brief}`)
-        return result
+        const messageSender = new MessageSender(this, `/dms/${guild_id}`, source);
+        const result = await messageSender.send(message);
+        this.logger.info(`send to Direct(${guild_id}): ${await messageSender.getBrief(message)}`);
+        return result;
     }
 
     /**
@@ -616,10 +668,10 @@ export class Bot<T extends Receiver.ReceiveMode=Receiver.ReceiveMode,M extends A
      * @param source
      */
     async sendGuildMessage(channel_id: string, message: Sendable, source?: Quotable) {
-        const sender = new Sender(this, `/channels/${channel_id}`, message, source)
-        const result = await sender.sendMsg()
-        this.logger.info(`send to Channel(${channel_id}/messages): ${sender.brief}`)
-        return result
+        const messageSender = new MessageSender(this, `/channels/${channel_id}`, source);
+        const result = await messageSender.send(message);
+        this.logger.info(`send to Channel(${channel_id}/messages): ${await messageSender.getBrief(message)}`);
+        return result;
     }
 
     /**
@@ -859,12 +911,12 @@ export namespace Bot {
         union_user_account?: string
     }
 
-    export type Config<T extends Receiver.ReceiveMode,M extends ApplicationPlatform=ApplicationPlatform> = {
-    } & QQBot.Config<T,M>
+    export type Config<T extends ReceiverMode,M extends ApplicationPlatform=ApplicationPlatform> = {
+    } & Client.Config<T,M>
 }
-export function defineConfig<T extends Receiver.ReceiveMode,M extends ApplicationPlatform=ApplicationPlatform>(config:Bot.Config<T,M>){
+export function defineConfig<T extends ReceiverMode,M extends ApplicationPlatform=ApplicationPlatform>(config:Bot.Config<T,M>){
     return config
 }
-export function createBot<T extends Receiver.ReceiveMode,M extends ApplicationPlatform=ApplicationPlatform>(config:Bot.Config<T,M>){
+export function createBot<T extends ReceiverMode,M extends ApplicationPlatform=ApplicationPlatform>(config:Bot.Config<T,M>){
     return new Bot(config)
 }

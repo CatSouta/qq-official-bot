@@ -1,4 +1,4 @@
-import {ChannelSubType, ChannelType, PrivateType, SpeakPermission} from "@/constans";
+import {ChannelSubType, ChannelType, PrivateType, SpeakPermission} from "@/constants";
 
 export namespace Channel {
     export interface Info {

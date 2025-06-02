@@ -20,8 +20,8 @@ import {
     ReplyChangeNoticeEvent,
     ThreadChangeNoticeEvent
 } from "@/events/notice";
-import {Receiver} from "@/receiver";
-import {ApplicationPlatform} from "@/receivers/webhook";
+import {ReceiverMode} from "@/receivers";
+import {ApplicationPlatform} from "@/receivers/middleware";
 
 export * from "./message"
 
@@ -72,7 +72,7 @@ export enum QQEvent {
     OPEN_FORUM_REPLY_DELETE = 'notice.forum'
 }
 
-export type EventParser<T extends keyof EventMap = keyof EventMap> = (this: Bot<Receiver.ReceiveMode,ApplicationPlatform>, event: T, payload: Dict) => Parameters<EventMap[T]>[0]
+export type EventParser<T extends keyof EventMap = keyof EventMap> = (this: Bot<ReceiverMode,ApplicationPlatform>, event: T, payload: Dict) => Parameters<EventMap[T]>[0]
 export const EventParserMap: Map<string, EventParser> = new Map<string, EventParser>()
 EventParserMap.set(QQEvent.MESSAGE_AUDIT_PASS, MessageAuditEvent.parse)
 EventParserMap.set(QQEvent.MESSAGE_AUDIT_REJECT, MessageAuditEvent.parse)

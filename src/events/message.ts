@@ -1,5 +1,5 @@
 import {Announce, Bot, EmojiType, PinsMessage, Sendable} from "@";
-import {Message} from "@/message"
+import {Message} from "@/message/parser"
 import {EventParser} from "@/events";
 
 export interface MessageEvent {

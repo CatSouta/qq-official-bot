@@ -160,3 +160,13 @@ export enum ReactionTargetType{
     ReactionTargetType_MSG = 'ReactionTargetType_MSG'
 }
 
+export interface GatewayInfo {
+    url: string;
+    shards?: number;
+    session_start_limit?: {
+        total: number;
+        remaining: number;
+        reset_after: number;
+        max_concurrency: number;
+    };
+}

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.6](https://github.com/zhinjs/qq-official-bot/compare/v1.0.5...v1.0.6) (2025-06-02)
+
+
+### Bug Fixes
+
+* 重构结构，增加文档细节 ([6a9c7ab](https://github.com/zhinjs/qq-official-bot/commit/6a9c7ab2ad06078b2c7572677aa2a4bf7d352458))
+
 ## [1.0.5](https://github.com/zhinjs/qq-official-bot/compare/v1.0.4...v1.0.5) (2025-05-16)
 
 

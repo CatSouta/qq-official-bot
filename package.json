@@ -40,7 +40,6 @@
         "axios": "1.8.2",
         "formdata-node": "^6.0.3",
         "log4js": "^6.9.1",
-        "wrangler": "^4.19.1",
         "ws": "^8.18.0"
     },
     "devDependencies": {

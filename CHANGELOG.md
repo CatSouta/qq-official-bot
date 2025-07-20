@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.8](https://github.com/zhinjs/qq-official-bot/compare/v1.0.7...v1.0.8) (2025-07-20)
+
+
+### Bug Fixes
+
+* 事件未触发 ([7a0a371](https://github.com/zhinjs/qq-official-bot/commit/7a0a3717f96feed995c3642d5e3e3fbd2b24ee2f))
+
 ## [1.0.7](https://github.com/zhinjs/qq-official-bot/compare/v1.0.6...v1.0.7) (2025-06-02)
 
 

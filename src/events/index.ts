@@ -126,6 +126,7 @@ export interface EventMap {
     'message.audit.reject'(e:MessageAuditEvent):void
     'message.group'(e: GroupMessageEvent): void
 
+    'message.private'(e: PrivateMessageEvent): void
     'message.private.friend'(e: PrivateMessageEvent): void
 
     'message.private.direct'(e: PrivateMessageEvent): void

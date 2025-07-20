@@ -1,14 +1,14 @@
-import type {MessageElem, Sendable} from "@/elements";
-import {Bot} from "@";
-import type {Dict} from "@/types";
-import {trimQuote} from "@/utils/string";
-import type {User} from "@/entries/user";
-import type {ApplicationPlatform} from "@/receivers/middleware";
-import {ReceiverMode} from "@/receivers/base";
+import type { MessageElem, Sendable } from "@/elements";
+import { Bot } from "@";
+import type { Dict } from "@/types";
+import { trimQuote } from "@/utils/string";
+import type { User } from "@/entries/user";
+import type { ApplicationPlatform } from "@/receivers/middleware";
+import { ReceiverMode } from "@/receivers/base";
 
 export class Message {
     message_type: Message.Type
-    sub_type:Message.SubType='normal'
+    sub_type: Message.SubType = 'normal'
 
     get self_id() {
         return this.bot.self_id
@@ -22,8 +22,8 @@ export class Message {
     sender: Message.Sender
     user_id: string
 
-    constructor(public readonly bot: Bot<ReceiverMode,ApplicationPlatform>, attrs: Dict) {
-        const {message_reference, ...otherAttrs} = attrs;
+    constructor(public readonly bot: Bot<ReceiverMode, ApplicationPlatform>, attrs: Dict) {
+        const { message_reference, ...otherAttrs } = attrs;
         Object.assign(this, otherAttrs);
         if (message_reference) {
             this.source = {
@@ -61,23 +61,23 @@ export namespace Message {
         user_name: string
         permissions: User.Permission[]
     }
-    export type Ret=MessageRet|FileInfo
-    export type MessageRet={
-        id:string
-        timestamp:number
+    export type Ret = MessageRet | FileInfo
+    export type MessageRet = {
+        id: string
+        timestamp: number
     }
-    export type Audit={
-        message_audit:{
-            audit_id:string
+    export type Audit = {
+        message_audit: {
+            audit_id: string
         }
     }
-    export type FileInfo={
+    export type FileInfo = {
         file_uuid: string
         file_info: string
         ttl: number
     }
     export type Type = 'private' | 'group' | 'guild'
-    export type SubType = 'direct'|'friend'|'temp'|'normal'
+    export type SubType = 'direct' | 'friend' | 'temp' | 'normal'
 
     export function parse(this: Bot<ReceiverMode>, payload: Dict) {
         let template = payload.content || ''
@@ -88,7 +88,9 @@ export namespace Message {
         if (payload.message_reference) {
             result.push({
                 type: 'reply',
-                id: payload.message_reference.message_id
+                data: {
+                    id: payload.message_reference.message_id
+                }
             })
             brief += `<reply,id=${payload.message_reference.message_id}>`
         }
@@ -100,7 +102,7 @@ export namespace Message {
             if (prevText) {
                 result.push({
                     type: 'text',
-                    text: prevText
+                    data: { text: prevText }
                 })
                 brief += prevText
             }
@@ -140,22 +142,23 @@ export namespace Message {
                 ].includes(type)) {
                     result.push({
                         type,
-                        ...Object.fromEntries(attrs.map((attr: string) => {
+                        data:Object.fromEntries(attrs.map((attr: string) => {
                             const [key, ...values] = attr.split('=')
                             return [key.toLowerCase(), trimQuote(values.join('='))]
-                        }))
+                        })
+                    )
                     })
                     brief += `<${type},${attrs.join(',')}>`
                 } else {
                     result.push({
                         type: 'text',
-                        text: match
+                        data: { text: match }
                     })
                 }
             } else {
                 result.push({
                     type: "text",
-                    text: match
+                    data: { text: match }
                 });
                 brief += match;
             }
@@ -163,14 +166,14 @@ export namespace Message {
         if (template) {
             result.push({
                 type: 'text',
-                text: template
+                data: { text: template }
             })
             brief += template
         }
         // 2. 将附件添加到消息中
         if (payload.attachments) {
             for (const attachment of payload.attachments) {
-                let {content_type, ...data} = attachment
+                let { content_type, ...data } = attachment
                 const [type] = content_type.split('/')
                 if (!data.url.startsWith('http'))
                     data.url = `https://${data.url}`

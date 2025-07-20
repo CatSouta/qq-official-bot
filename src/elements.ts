@@ -1,4 +1,4 @@
-import {Dict} from '@/types'
+import { Dict } from '@/types'
 
 export enum MusicPlatform {
     qq = "qq",
@@ -63,9 +63,7 @@ export interface MessageElemMap {
     link: {
         channel_id: string
     };
-    button: {
-        data: Dict
-    };
+    button: Dict;
     ark: {
         template_id: number
         kv: Dict<string, 'key' | 'value'>[]
@@ -73,7 +71,7 @@ export interface MessageElemMap {
     embed: {
         title: string
         prompt: string
-        htumbnail: Dict<string>
+        thumbnail: Dict<string>
         fields: Dict<string, 'name'>[]
     }
 }
@@ -82,7 +80,8 @@ export type MessageElemType = keyof MessageElemMap;
 // 消息元素
 export type MessageElem<T extends MessageElemType = MessageElemType> = {
     type: T;
-} & MessageElemMap[T];
+    data: MessageElemMap[T];
+};
 // 可以发送的消息类型
 export type TextElem = MessageElem<"text">;
 export type AtElem = MessageElem<"at">;
@@ -115,11 +114,11 @@ export type Sendable =
     | RepeatableCombineElem
     | (RepeatableCombineElem)[] // 可重复组合的消息元素
     | WithReply<
-    | ImageElem // 图片元素
-    | KeyboardElem // 按钮组，供按钮模板使用
-    | MDElem // markdown元素
-    | ArkElem // Ark 元素
-    | EmbedElem // Embed元素 仅频道和频道私信支持
-    | VideoElem // 视频消息元素
-    | AudioElem // 语音消息元素
->; // 带回复的消息元素
+        | ImageElem // 图片元素
+        | KeyboardElem // 按钮组，供按钮模板使用
+        | MDElem // markdown元素
+        | ArkElem // Ark 元素
+        | EmbedElem // Embed元素 仅频道和频道私信支持
+        | VideoElem // 视频消息元素
+        | AudioElem // 语音消息元素
+    >; // 带回复的消息元素

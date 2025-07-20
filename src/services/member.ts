@@ -1,64 +1,32 @@
 /**
  * 成员服务类 - 负责所有成员相关的API操作
  */
-import { AxiosResponse } from 'axios'
-import { Bot } from '@/bot'
+import { AxiosInstance } from 'axios'
 import { GuildMember } from '@/entries/guildMember'
 
-// 定义 API 响应类型
-type ApiResponse<T> = {
-    success: boolean;
-    data?: T;
-    message?: string;
-    error?: any;
-}
-
 export class MemberService {
-    constructor(private bot: Bot) {}
+    constructor(private request: AxiosInstance) {}
 
     /**
      * 获取频道成员列表
      */
-    async getGuildMemberList(guildId: string): Promise<ApiResponse<GuildMember.ApiInfo[]>> {
-        try {
-            const result = await this._getGuildMemberList(guildId)
-            return { success: true, data: result }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    async getGuildMemberList(guildId: string): Promise<GuildMember.ApiInfo[]> {
+        return await this._getGuildMemberList(guildId)
     }
 
     /**
      * 获取频道成员信息
      */
-    async getGuildMemberInfo(guildId: string, memberId: string): Promise<ApiResponse<GuildMember.ApiInfo>> {
-        try {
-            const { data: { user: { id: member_id, ...member }, roles, joined_at, nick } } =
-                await this.bot.request.get(`/guilds/${guildId}/members/${memberId}`)
+    async getGuildMemberInfo(guildId: string, memberId: string): Promise<GuildMember.ApiInfo> {
+        const { data: { user: { id: member_id, ...member }, roles, joined_at, nick } } =
+            await this.request.get(`/guilds/${guildId}/members/${memberId}`)
 
-            const result: GuildMember.ApiInfo = {
-                member_id,
-                card: nick,
-                roles,
-                ...member,
-                join_time: new Date(joined_at).getTime() / 1000,
-            }
-
-            return { success: true, data: result }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
+        return {
+            member_id,
+            card: nick,
+            roles,
+            ...member,
+            join_time: new Date(joined_at).getTime() / 1000,
         }
     }
 
@@ -70,43 +38,20 @@ export class MemberService {
         memberIds: string[], 
         seconds: number, 
         endTime?: number
-    ): Promise<ApiResponse<boolean>> {
-        try {
-            const result = await this.bot.request.put(`/guilds/${guildId}/mute`, {
-                mute_seconds: `${seconds}`,
-                mute_end_timestamp: `${endTime}`,
-                user_ids: memberIds
-            })
-            return {
-                success: true,
-                data: result.status === 200
-            }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    ): Promise<boolean> {
+        const result = await this.request.put(`/guilds/${guildId}/mute`, {
+            mute_seconds: `${seconds}`,
+            mute_end_timestamp: `${endTime}`,
+            user_ids: memberIds
+        })
+        return result.status === 200
     }
 
     /**
      * 批量取消频道成员禁言
      */
-    async unmuteMembers(guildId: string, memberIds: string[]): Promise<ApiResponse<boolean>> {
-        try {
-            return await this.muteMembers(guildId, memberIds, 0, 0)
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    async unmuteMembers(guildId: string, memberIds: string[]): Promise<boolean> {
+        return await this.muteMembers(guildId, memberIds, 0, 0)
     }
 
     /**
@@ -117,25 +62,12 @@ export class MemberService {
         channelId: string, 
         memberId: string, 
         roleId: string
-    ): Promise<ApiResponse<boolean>> {
-        try {
-            const result = await this.bot.request.put(
-                `/guilds/${guildId}/members/${memberId}/roles/${roleId}`, 
-                { id: channelId }
-            )
-            return {
-                success: true,
-                data: result.status === 204
-            }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    ): Promise<boolean> {
+        const result = await this.request.put(
+            `/guilds/${guildId}/members/${memberId}/roles/${roleId}`, 
+            { id: channelId }
+        )
+        return result.status === 204
     }
 
     /**
@@ -146,25 +78,12 @@ export class MemberService {
         channelId: string, 
         memberId: string, 
         roleId: string
-    ): Promise<ApiResponse<boolean>> {
-        try {
-            const result = await this.bot.request.delete(
-                `/guilds/${guildId}/members/${memberId}/roles/${roleId}`, 
-                { data: { id: channelId } }
-            )
-            return {
-                success: true,
-                data: result.status === 204
-            }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    ): Promise<boolean> {
+        const result = await this.request.delete(
+            `/guilds/${guildId}/members/${memberId}/roles/${roleId}`, 
+            { data: { id: channelId } }
+        )
+        return result.status === 204
     }
 
     /**
@@ -175,34 +94,21 @@ export class MemberService {
         memberId: string, 
         clean: -1 | 0 | 3 | 7 | 15 | 30 = 0, 
         blacklist?: boolean
-    ): Promise<ApiResponse<boolean>> {
-        try {
-            const result = await this.bot.request.delete(`/guilds/${guildId}/members/${memberId}`, {
-                data: {
-                    add_blacklist: blacklist,
-                    delete_message_days: clean
-                }
-            })
-            return {
-                success: true,
-                data: result.status === 204
+    ): Promise<boolean> {
+        const result = await this.request.delete(`/guilds/${guildId}/members/${memberId}`, {
+            data: {
+                add_blacklist: blacklist,
+                delete_message_days: clean
             }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+        })
+        return result.status === 204
     }
 
     /**
      * 私有方法：获取频道成员列表的实现
      */
     private async _getGuildMemberList(guildId: string, after?: string): Promise<GuildMember.ApiInfo[]> {
-        const res = await this.bot.request.get(`/guilds/${guildId}/members`, {
+        const res = await this.request.get(`/guilds/${guildId}/members`, {
             params: {
                 after,
                 limit: 100

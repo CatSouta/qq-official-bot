@@ -1,55 +1,26 @@
 /**
  * 帖子服务类 - 负责所有帖子相关的API操作
  */
-import { AxiosResponse } from 'axios'
-import { Bot } from '@/bot'
+import { AxiosInstance } from 'axios'
 import { Thread, ThreadInfo } from '@/types'
 
-// 定义 API 响应类型
-type ApiResponse<T> = {
-    success: boolean;
-    data?: T;
-    message?: string;
-    error?: any;
-}
-
 export class ThreadService {
-    constructor(private bot: Bot) {}
+    constructor(private request: AxiosInstance) {}
 
     /**
      * 获取频道帖子列表
      */
-    async getChannelThreads(channelId: string): Promise<ApiResponse<Thread[]>> {
-        try {
-            const { data } = await this.bot.request.get(`/channels/${channelId}/threads`)
-            return { success: true, data }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    async getChannelThreads(channelId: string): Promise<Thread[]> {
+        const { data } = await this.request.get(`/channels/${channelId}/threads`)
+        return data
     }
 
     /**
      * 获取频道帖子详情
      */
-    async getChannelThreadInfo(channelId: string, threadId: string): Promise<ApiResponse<ThreadInfo>> {
-        try {
-            const { data } = await this.bot.request.get(`/channels/${channelId}/threads/${threadId}`)
-            return { success: true, data }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    async getChannelThreadInfo(channelId: string, threadId: string): Promise<ThreadInfo> {
+        const { data } = await this.request.get(`/channels/${channelId}/threads/${threadId}`)
+        return data
     }
 
     /**
@@ -60,43 +31,20 @@ export class ThreadService {
         title: string,
         content: string,
         format: 1 | 2 | 3 | 4 = 3
-    ): Promise<ApiResponse<ThreadInfo>> {
-        try {
-            const { data } = await this.bot.request.post(`/channels/${channelId}/threads`, {
-                title,
-                content,
-                format
-            })
-            return { success: true, data }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    ): Promise<ThreadInfo> {
+        const { data } = await this.request.post(`/channels/${channelId}/threads`, {
+            title,
+            content,
+            format
+        })
+        return data
     }
 
     /**
      * 删除频道帖子
      */
-    async deleteThread(channelId: string, threadId: string): Promise<ApiResponse<boolean>> {
-        try {
-            const result = await this.bot.request.delete(`/channels/${channelId}/threads/${threadId}`)
-            return {
-                success: true,
-                data: result.status === 204
-            }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    async deleteThread(channelId: string, threadId: string): Promise<boolean> {
+        const result = await this.request.delete(`/channels/${channelId}/threads/${threadId}`)
+        return result.status === 204
     }
 }

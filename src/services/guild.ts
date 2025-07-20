@@ -1,9 +1,8 @@
 /**
  * 频道服务类 - 负责所有频道相关的API操作
  */
-import { AxiosResponse } from 'axios'
+import { AxiosResponse, AxiosInstance } from 'axios'
 import { Guild } from '@'
-import { Bot } from '@'
 import {
     RoleCreateParam,
     RoleUpdateParam,
@@ -11,134 +10,73 @@ import {
     ApiPermissionDemand
 } from '@'
 
-// 定义 API 响应类型
-type ApiResponse<T> = {
-    success: boolean;
-    data?: T;
-    message?: string;
-    error?: any;
-}
-
 export class GuildService {
-    constructor(private bot: Bot) {}
+    constructor(private request: AxiosInstance) {}
 
     /**
      * 获取频道列表
      */
-    async getList(): Promise<ApiResponse<Guild.ApiInfo[]>> {
-        try {
-            const result = await this._getGuildList()
-            return { success: true, data: result }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    async getList(): Promise<Guild.ApiInfo[]> {
+        const result = await this._getGuildList()
+        return result
     }
 
     /**
      * 获取频道信息
      */
-    async getInfo(guildId: string): Promise<ApiResponse<Guild.ApiInfo>> {
-        try {
-            const { data: { id: _, name: guild_name, joined_at, ...guild } } =
-                await this.bot.request.get(`/guilds/${guildId}`)
+    async getInfo(guildId: string): Promise<Guild.ApiInfo> {
+        const { data: { id: _, name: guild_name, joined_at, ...guild } } =
+            await this.request.get(`/guilds/${guildId}`)
 
-            const result: Guild.ApiInfo = {
-                guild_id: guildId,
-                guild_name,
-                join_time: new Date(joined_at).getTime() / 1000,
-                ...guild
-            }
-
-            return { success: true, data: result }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
+        const result: Guild.ApiInfo = {
+            guild_id: guildId,
+            guild_name,
+            join_time: new Date(joined_at).getTime() / 1000,
+            ...guild
         }
+
+        return result
     }
 
     /**
      * 频道禁言
      */
-    async mute(guildId: string, seconds: number, endTime?: number): Promise<ApiResponse<boolean>> {
-        try {
-            const result = await this.bot.request.put(`/guilds/${guildId}/mute`, {
-                mute_seconds: `${seconds}`,
-                mute_end_timestamp: `${endTime || 0}`
-            })
+    async mute(guildId: string, seconds: number, endTime?: number): Promise<boolean> {
+        const result = await this.request.put(`/guilds/${guildId}/mute`, {
+            mute_seconds: `${seconds}`,
+            mute_end_timestamp: `${endTime || 0}`
+        })
 
-            return {
-                success: true,
-                data: result.status === 204
-            }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+        return result.status === 204
     }
 
     /**
      * 取消频道禁言
      */
-    async unmute(guildId: string): Promise<ApiResponse<boolean>> {
+    async unmute(guildId: string): Promise<boolean> {
         return this.mute(guildId, 0, 0)
     }
 
     /**
      * 获取频道角色列表
      */
-    async getRoles(guildId: string): Promise<ApiResponse<Guild.Role[]>> {
-        try {
-            const { data: { roles = [] } = {} } =
-                await this.bot.request.get<{ roles: Guild.Role[] }>(`/guilds/${guildId}/roles`)
+    async getRoles(guildId: string): Promise<Guild.Role[]> {
+        const { data: { roles = [] } = {} } =
+            await this.request.get<{ roles: Guild.Role[] }>(`/guilds/${guildId}/roles`)
 
-            return { success: true, data: roles }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+        return roles
     }
 
     /**
      * 创建频道角色
      */
-    async createRole(guildId: string, role: RoleCreateParam): Promise<ApiResponse<Guild.Role>> {
-        try {
-            const { data: { role: result } } = await this.bot.request.post<
-                RoleCreateParam,
-                AxiosResponse<{ role: Guild.Role }>
-            >(`/guilds/${guildId}/roles`, role)
+    async createRole(guildId: string, role: RoleCreateParam): Promise<Guild.Role> {
+        const { data: { role: result } } = await this.request.post<
+            RoleCreateParam,
+            AxiosResponse<{ role: Guild.Role }>
+        >(`/guilds/${guildId}/roles`, role)
 
-            return { success: true, data: result }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+        return result
     }
 
     /**
@@ -148,65 +86,32 @@ export class GuildService {
         guildId: string,
         roleId: string,
         updateInfo: RoleUpdateParam
-    ): Promise<ApiResponse<Guild.Role>> {
-        try {
-            const { data: { role: result } } = await this.bot.request.patch<
-                RoleUpdateParam,
-                AxiosResponse<{ role: Guild.Role }>
-            >(`/guilds/${guildId}/roles/${roleId}`, updateInfo)
+    ): Promise<Guild.Role> {
+        const { data: { role: result } } = await this.request.patch<
+            RoleUpdateParam,
+            AxiosResponse<{ role: Guild.Role }>
+        >(`/guilds/${guildId}/roles/${roleId}`, updateInfo)
 
-            return { success: true, data: result }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+        return result
     }
 
     /**
      * 删除频道角色
      */
-    async deleteRole(roleId: string): Promise<ApiResponse<boolean>> {
-        try {
-            const result = await this.bot.request.delete(`/guilds/{guild_id}/roles/${roleId}`)
-            return {
-                success: true,
-                data: result.status === 204
-            }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    async deleteRole(roleId: string): Promise<boolean> {
+        const result = await this.request.delete(`/guilds/{guild_id}/roles/${roleId}`)
+        return result.status === 204
     }
 
     /**
      * 获取频道可访问API类别
      */
-    async getAccessApis(guildId: string): Promise<ApiResponse<ApiPermissionDemand[]>> {
-        try {
-            const { data: { apis = [] } } = await this.bot.request.get<{
-                apis: ApiPermissionDemand[]
-            }>(`/guilds/${guildId}/api_permission`)
+    async getAccessApis(guildId: string): Promise<ApiPermissionDemand[]> {
+        const { data: { apis = [] } } = await this.request.get<{
+            apis: ApiPermissionDemand[]
+        }>(`/guilds/${guildId}/api_permission`)
 
-            return { success: true, data: apis }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+        return apis
     }
 
     /**
@@ -217,35 +122,25 @@ export class GuildService {
         channelId: string,
         apiInfo: ApiBaseInfo,
         desc?: string
-    ): Promise<ApiResponse<ApiPermissionDemand>> {
-        try {
-            const { data: result } = await this.bot.request.post<{
-                channel_id: string
-                api_identify: ApiBaseInfo
-                desc: string
-            }, AxiosResponse<ApiPermissionDemand>>(`/guilds/${guildId}/api_permission/demand`, {
-                channel_id: channelId,
-                api_identify: apiInfo,
-                desc,
-            })
+    ): Promise<ApiPermissionDemand> {
+        const { data: result } = await this.request.post<{
+            channel_id: string
+            api_identify: ApiBaseInfo
+            desc: string
+        }, AxiosResponse<ApiPermissionDemand>>(`/guilds/${guildId}/api_permission/demand`, {
+            channel_id: channelId,
+            api_identify: apiInfo,
+            desc,
+        })
 
-            return { success: true, data: result }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+        return result
     }
 
     /**
      * 私有方法：获取频道列表的实现
      */
     private async _getGuildList(after?: string): Promise<Guild.ApiInfo[]> {
-        const res = await this.bot.request.get('/users/@me/guilds', {
+        const res = await this.request.get('/users/@me/guilds', {
             params: { after }
         }).catch(() => ({ data: [] })) // 私域不支持获取频道列表，做个兼容
 

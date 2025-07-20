@@ -105,7 +105,7 @@ export class GuildMessageEvent extends Message implements MessageEvent {
      * @param id {`${number}`} 表态表情id
      */
     async reaction(type: EmojiType, id: `${number}`) {
-        return this.bot.reactionGuildMessage(this.channel_id, this.message_id, type, id)
+        return this.bot.addGuildMessageReaction(this.channel_id, this.message_id, type, id)
     }
 
     /**

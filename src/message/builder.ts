@@ -2,7 +2,7 @@
  * 消息构建器 - 专门负责构建消息内容
  */
 
-import { Sendable, MessageElem, ImageElem, VideoElem, AudioElem } from "@/elements";
+import { Sendable, MessageElem, ImageElem, VideoElem, AudioElem, ReplyElem, AtElem, LinkElem, TextElem, FaceElem, MDElem, KeyboardElem, ButtonElem, EmbedElem, ArkElem } from "@/elements";
 import { md5 } from "@/utils";
 import { randomInt } from "crypto";
 
@@ -55,7 +55,7 @@ export class MessageBuilder {
 
   constructor(
     private appid: string,
-    private baseUrl: string,
+    private isGuild?: boolean,
     private source?: { id?: string; event_id?: string }
   ) {
     this.messagePayload = {
@@ -100,7 +100,7 @@ export class MessageBuilder {
 
     while (messageQueue.length) {
       const elem = messageQueue.shift();
-      
+
       if (typeof elem === 'string') {
         const parsedElems = this.parseFromTemplate(elem);
         messageQueue.unshift(...(parsedElems as any));
@@ -115,23 +115,21 @@ export class MessageBuilder {
    * 处理单个消息元素
    */
   private async processElement(elem: MessageElem): Promise<void> {
-    const { type, ...data } = elem;
-
-    switch (type) {
+    switch (elem.type) {
       case 'reply':
-        this.handleReply(elem as any);
+        this.handleReply(elem as ReplyElem);
         break;
       case 'at':
-        this.handleAt(elem as any);
+        this.handleAt(elem as AtElem);
         break;
       case 'link':
-        this.handleLink(elem as any);
+        this.handleLink(elem as LinkElem);
         break;
       case 'text':
-        this.handleText(elem as any);
+        this.handleText(elem as TextElem);
         break;
       case 'face':
-        this.handleFace(elem as any);
+        this.handleFace(elem as FaceElem);
         break;
       case 'image':
       case 'audio':
@@ -139,46 +137,47 @@ export class MessageBuilder {
         await this.handleMedia(elem as ImageElem | VideoElem | AudioElem);
         break;
       case 'markdown':
-        this.handleMarkdown(elem as any);
+        this.handleMarkdown(elem as MDElem);
         break;
       case 'keyboard':
-        this.handleKeyboard(elem as any);
+        this.handleKeyboard(elem as KeyboardElem);
         break;
       case 'button':
-        this.handleButton(elem as any);
+        this.handleButton(elem as ButtonElem);
         break;
       case 'embed':
-        this.handleEmbed(elem as any);
+        this.handleEmbed(elem as EmbedElem);
         break;
       case 'ark':
         this.handleArk(elem as any);
         break;
       default:
-        console.warn(`未知的消息元素类型: ${type}`);
+        console.warn(`未知的消息元素类型: ${elem.type}`);
+        break;
     }
   }
 
   /**
    * 处理回复元素
    */
-  private handleReply(elem: { event_id?: string; id?: string }): void {
-    if (elem.event_id) {
-      this.messagePayload.event_id = elem.event_id;
-      this.brief += `<reply,event_id=${elem.event_id}>`;
-    } else if (elem.id) {
-      this.messagePayload.msg_id = elem.id;
+  private handleReply(elem: ReplyElem): void {
+    if (elem.data.event_id) {
+      this.messagePayload.event_id = elem.data.event_id;
+      this.brief += `<reply,event_id=${elem.data.event_id}>`;
+    } else if (elem.data.id) {
+      this.messagePayload.msg_id = elem.data.id;
       this.messagePayload.message_reference = {
-        message_id: elem.id
+        message_id: elem.data.id
       };
-      this.brief += `<reply,msg_id=${elem.id}>`;
+      this.brief += `<reply,msg_id=${elem.data.id}>`;
     }
   }
 
   /**
    * 处理@元素
    */
-  private handleAt(elem: { user_id: string | 'all' }): void {
-    const userId = elem.user_id === 'all' ? 'everyone' : elem.user_id;
+  private handleAt(elem: AtElem): void {
+    const userId = elem.data.user_id === 'all' ? 'everyone' : elem.data.user_id;
     this.messagePayload.content += `<@${userId}>`;
     this.brief += `<at,user=${userId}>`;
   }
@@ -186,25 +185,25 @@ export class MessageBuilder {
   /**
    * 处理链接元素
    */
-  private handleLink(elem: { channel_id: string }): void {
-    this.messagePayload.content += `<#${elem.channel_id}>`;
-    this.brief += `<link,channel=${elem.channel_id}>`;
+  private handleLink(elem: LinkElem): void {
+    this.messagePayload.content += `<#${elem.data.channel_id}>`;
+    this.brief += `<link,channel=${elem.data.channel_id}>`;
   }
 
   /**
    * 处理文本元素
    */
-  private handleText(elem: { text: string }): void {
-    this.messagePayload.content += elem.text;
-    this.brief += elem.text;
+  private handleText(elem: TextElem): void {
+    this.messagePayload.content += elem.data.text;
+    this.brief += elem.data.text;
   }
 
   /**
    * 处理表情元素
    */
-  private handleFace(elem: { id: number }): void {
-    this.messagePayload.content += `<emoji:${elem.id}>`;
-    this.brief += `<face,id=${elem.id}>`;
+  private handleFace(elem: FaceElem): void {
+    this.messagePayload.content += `<emoji:${elem.data.id}>`;
+    this.brief += `<face,id=${elem.data.id}>`;
   }
 
   /**
@@ -212,16 +211,16 @@ export class MessageBuilder {
    */
   private async handleMedia(elem: ImageElem | VideoElem | AudioElem): Promise<void> {
     const mediaType = this.getMediaType(elem.type);
-    
+
     // 如果是回复消息，需要特殊处理
     if (this.messagePayload.msg_id || this.messagePayload.event_id) {
-      if (!this.baseUrl.startsWith('/v2')) {
+      if (this.isGuild) {
         // 频道消息的文件处理
         const fileData = await this.prepareGuildMediaData(elem);
         if (typeof fileData !== 'string') {
           this.messagePayload.file_image = fileData;
         } else {
-          this.messagePayload.image = elem.file as string;
+          this.messagePayload.image = elem.data.file as string;
         }
       } else {
         // 群聊/私聊消息的文件处理
@@ -232,12 +231,12 @@ export class MessageBuilder {
       }
     } else {
       // 非回复消息的处理
-      if (!this.baseUrl.startsWith('/v2')) {
+      if (this.isGuild) {
         const fileData = await this.prepareGuildMediaData(elem);
         if (typeof fileData !== 'string') {
           this.messagePayload.file_image = fileData;
         } else {
-          this.messagePayload.image = elem.file as string;
+          this.messagePayload.image = elem.data.file as string;
         }
       } else {
         this.isFile = true;
@@ -245,25 +244,25 @@ export class MessageBuilder {
       }
     }
 
-    this.brief += `<${elem.type}:${this.getFileHash(elem.file)}>`;
+    this.brief += `<${elem.type}:${this.getFileHash(elem.data.file)}>`;
   }
 
   /**
    * 处理Markdown元素
    */
-  private handleMarkdown(elem: any): void {
-    this.messagePayload.markdown = elem;
+  private handleMarkdown(elem: MDElem): void {
+    this.messagePayload.markdown = elem.data;
     this.messagePayload.msg_type = 2;
-    const content = elem.content ? `content=${elem.content}` : `template_id=${elem.custom_template_id}`;
+    const content = elem.data.content ? `content=${elem.data.content}` : `template_id=${elem.data.custom_template_id}`;
     this.brief += `<markdown,${content}>`;
   }
 
   /**
    * 处理键盘元素
    */
-  private handleKeyboard(elem: any): void {
+  private handleKeyboard(elem: KeyboardElem): void {
     this.messagePayload.msg_type = 2;
-    this.messagePayload.keyboard = elem;
+    this.messagePayload.keyboard = elem.data;
     this.messagePayload.bot_appid = this.appid;
     this.brief += `<keyboard>`;
   }
@@ -271,27 +270,27 @@ export class MessageBuilder {
   /**
    * 处理按钮元素
    */
-  private handleButton(elem: any): void {
-    this.buttons.push(elem);
-    this.brief += `<button,data=${JSON.stringify(elem)}>`;
+  private handleButton(elem: ButtonElem): void {
+    this.buttons.push(elem.data);
+    this.brief += `<button,data=${JSON.stringify(elem.data)}>`;
   }
 
   /**
    * 处理嵌入元素
    */
-  private handleEmbed(elem: any): void {
-    if (this.baseUrl.startsWith('/v2')) return;
+  private handleEmbed(elem: EmbedElem): void {
+    if (!this.isGuild) return;
     this.messagePayload.msg_type = 4;
-    this.messagePayload.embed = elem;
+    this.messagePayload.embed = elem.data;
     this.brief += `<embed>`;
   }
 
   /**
    * 处理ARK元素
    */
-  private handleArk(elem: any): void {
+  private handleArk(elem: ArkElem): void {
     this.messagePayload.msg_type = 3;
-    this.messagePayload.ark = elem;
+    this.messagePayload.ark = elem.data;
     this.brief += `<ark>`;
   }
 
@@ -309,13 +308,20 @@ export class MessageBuilder {
         rows.push(row);
         row = [];
       }
-
+      // 支持按钮模板发送
+      if (this.buttons[i].id) {
+        this.messagePayload.keyboard = {
+          id: this.buttons[i].id,
+          bot_appid: this.appid
+        };
+        return;
+      }
+      // 如果是按钮组，则直接添加到行中
       if (Array.isArray(this.buttons[i].buttons)) {
         rows.push(this.buttons[i].buttons);
-        continue;
+      }else{
+        row.push(this.buttons[i]);  
       }
-
-      row.push(this.buttons[i]);
     }
 
     if (row.length > 0) {
@@ -336,7 +342,7 @@ export class MessageBuilder {
    * 从模板字符串解析消息元素
    */
   private parseFromTemplate(template: string): MessageElem[] {
-    const result = [];
+    const result: MessageElem[] = [];
     const reg = /(<[^>]+>)/;
 
     while (template.length) {
@@ -345,7 +351,7 @@ export class MessageBuilder {
         if (template) {
           result.push({
             type: 'text',
-            text: template
+            data: { text: template }
           });
         }
         break;
@@ -353,11 +359,11 @@ export class MessageBuilder {
 
       const index = template.indexOf(match);
       const prevText = template.slice(0, index);
-      
+
       if (prevText) {
         result.push({
           type: 'text',
-          text: prevText
+          data: { text: prevText }
         });
       }
 
@@ -374,8 +380,8 @@ export class MessageBuilder {
 
       result.push({
         type,
-        ...attrs
-      });
+        data: attrs
+      } as MessageElem);
     }
 
     return result;
@@ -386,27 +392,27 @@ export class MessageBuilder {
    */
   private async prepareGuildMediaData(elem: ImageElem | VideoElem | AudioElem): Promise<any> {
     if ('url' in elem && elem.url) return elem.url;
-    
-    if (typeof elem.file === "string" && elem.file.startsWith('http')) {
-      return elem.file;
+
+    if (typeof elem.data.file === "string" && elem.data.file.startsWith('http')) {
+      return elem.data.file;
     }
 
     this.contentType = 'multipart/form-data';
 
-    if (Buffer.isBuffer(elem.file)) {
-      return new Blob([elem.file]);
-    } else if (typeof elem.file !== "string") {
-      throw new Error("无效的文件参数: " + elem.file);
-    } else if (elem.file.startsWith("base64://")) {
-      return new Blob([Buffer.from(elem.file.slice(9), 'base64')]);
-    } else if (/^data:[^/]+\/[^;]+;base64,/.test(elem.file)) {
-      return new Blob([Buffer.from(elem.file.replace(/^data:[^/]+\/[^;]+;base64,/, ''), 'base64')]);
+    if (Buffer.isBuffer(elem.data.file)) {
+      return new Blob([elem.data.file]);
+    } else if (typeof elem.data.file !== "string") {
+      throw new Error("无效的文件参数: " + elem.data.file);
+    } else if (elem.data.file.startsWith("base64://")) {
+      return new Blob([Buffer.from(elem.data.file.slice(9), 'base64')]);
+    } else if (/^data:[^/]+\/[^;]+;base64,/.test(elem.data.file)) {
+      return new Blob([Buffer.from(elem.data.file.replace(/^data:[^/]+\/[^;]+;base64,/, ''), 'base64')]);
     } else {
       try {
         const fs = require('node:fs/promises');
-        return new Blob([await fs.readFile(elem.file.replace("file://", ""))]);
+        return new Blob([await fs.readFile(elem.data.file.replace("file://", ""))]);
       } catch {
-        throw new Error("无效的文件路径: " + elem.file);
+        throw new Error("无效的文件路径: " + elem.data.file);
       }
     }
   }

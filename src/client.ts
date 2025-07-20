@@ -7,7 +7,6 @@ import { Session } from "./core/session";
 import type { Dict, LogLevel, DataPacket } from "@/types";
 import { EventMap, EventParserMap, QQEvent } from "./events";
 import { Intent } from "./constants";
-import { getFileBase64 } from "@/utils/file";
 import type { ApplicationPlatform } from "@/receivers/middleware";
 import {ReceiverMode,ReceiveModeConfig} from "@/receivers";
 
@@ -87,18 +86,7 @@ export class Client<T extends ReceiverMode, M extends ApplicationPlatform = Appl
                 this.logger.debug('Failed to parse event:', wsRes);
                 return;
             }
-
-            // Use EventDispatcher if available
-            const eventDispatcher = (this as any).eventDispatcher;
-            if (eventDispatcher) {
-                eventDispatcher.dispatch(transformEvent, wsRes).catch((error: Error) => {
-                    this.logger.error('[EVENT] EventDispatcher failed:', error);
-                    // Fallback to original method
-                    this.em(transformEvent, result);
-                });
-            } else {
-                this.em(transformEvent, result);
-            }
+            this.em(transformEvent, result);
         } catch (error) {
             this.logger.debug('Failed to parse event:', wsRes);
         }

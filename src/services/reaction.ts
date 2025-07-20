@@ -1,21 +1,12 @@
 /**
  * 表态服务类 - 负责所有表态相关的API操作
  */
-import { AxiosResponse } from 'axios'
-import { Bot } from '@/bot'
+import { AxiosInstance } from 'axios'
 import { EmojiType } from '@/types'
 import { User } from '@/entries/user'
 
-// 定义 API 响应类型
-type ApiResponse<T> = {
-    success: boolean;
-    data?: T;
-    message?: string;
-    error?: any;
-}
-
 export class ReactionService {
-    constructor(private bot: Bot) {}
+    constructor(private request: AxiosInstance) {}
 
     /**
      * 对频道消息进行表态
@@ -25,22 +16,9 @@ export class ReactionService {
         messageId: string, 
         type: EmojiType, 
         id: `${number}`
-    ): Promise<ApiResponse<boolean>> {
-        try {
-            const result = await this.bot.request.put(`/channels/${channelId}/messages/${messageId}/reactions/${type}/${id}`)
-            return {
-                success: true,
-                data: result.status === 204
-            }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    ): Promise<boolean> {
+        const result = await this.request.put(`/channels/${channelId}/messages/${messageId}/reactions/${type}/${id}`)
+        return result.status === 204
     }
 
     /**
@@ -51,22 +29,9 @@ export class ReactionService {
         messageId: string, 
         type: EmojiType, 
         id: `${number}`
-    ): Promise<ApiResponse<boolean>> {
-        try {
-            const result = await this.bot.request.delete(`/channels/${channelId}/messages/${messageId}/reactions/${type}/${id}`)
-            return {
-                success: true,
-                data: result.status === 204
-            }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    ): Promise<boolean> {
+        const result = await this.request.delete(`/channels/${channelId}/messages/${messageId}/reactions/${type}/${id}`)
+        return result.status === 204
     }
 
     /**
@@ -77,19 +42,8 @@ export class ReactionService {
         messageId: string, 
         type: EmojiType, 
         id: `${number}`
-    ): Promise<ApiResponse<User.Info[]>> {
-        try {
-            const result = await this._getGuildMessageReactionMembers(channelId, messageId, type, id)
-            return { success: true, data: result }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    ): Promise<User.Info[]> {
+        return await this._getGuildMessageReactionMembers(channelId, messageId, type, id)
     }
 
     /**
@@ -118,7 +72,7 @@ export class ReactionService {
                 cookie,
                 is_end
             }
-        } = await this.bot.request.get(`/channels/${channelId}/messages/${messageId}/reactions/${type}/${id}`, {
+        } = await this.request.get(`/channels/${channelId}/messages/${messageId}/reactions/${type}/${id}`, {
             params: {
                 cookie: cookies
             }

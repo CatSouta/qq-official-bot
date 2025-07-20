@@ -36,10 +36,11 @@
     "author": "凉菜",
     "license": "MIT",
     "dependencies": {
+        "@noble/curves": "^1.6.0",
         "axios": "1.8.2",
         "formdata-node": "^6.0.3",
-        "@noble/curves": "^1.6.0",
         "log4js": "^6.9.1",
+        "wrangler": "^4.19.1",
         "ws": "^8.18.0"
     },
     "devDependencies": {

@@ -1,81 +1,33 @@
 /**
  * 音频服务类 - 负责所有音频相关的API操作
  */
-import { AxiosResponse } from 'axios'
-import { Bot } from '@/bot'
+import { AxiosInstance } from 'axios'
 import { AudioControl } from '@/types'
 
-// 定义 API 响应类型
-type ApiResponse<T> = {
-    success: boolean;
-    data?: T;
-    message?: string;
-    error?: any;
-}
-
 export class AudioService {
-    constructor(private bot: Bot) {}
+    constructor(private request: AxiosInstance) {}
 
     /**
      * 音频控制
      */
-    async controlChannelAudio(channelId: string, audioControl: AudioControl): Promise<ApiResponse<boolean>> {
-        try {
-            const result = await this.bot.request.post(`/channels/${channelId}/audio`, audioControl)
-            return {
-                success: true,
-                data: result.status === 200
-            }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    async controlChannelAudio(channelId: string, audioControl: AudioControl): Promise<boolean> {
+        const result = await this.request.post(`/channels/${channelId}/audio`, audioControl)
+        return result.status === 200
     }
 
     /**
      * 上麦
      */
-    async setOnlineMic(channelId: string): Promise<ApiResponse<boolean>> {
-        try {
-            const result = await this.bot.request.put(`/channels/${channelId}/mic`)
-            return {
-                success: true,
-                data: result.status === 200
-            }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    async setOnlineMic(channelId: string): Promise<boolean> {
+        const result = await this.request.put(`/channels/${channelId}/mic`)
+        return result.status === 200
     }
 
     /**
      * 下麦
      */
-    async setOfflineMic(channelId: string): Promise<ApiResponse<boolean>> {
-        try {
-            const result = await this.bot.request.delete(`/channels/${channelId}/mic`)
-            return {
-                success: true,
-                data: result.status === 204
-            }
-        } catch (error) {
-            return {
-                success: false,
-                error: {
-                    code: error.status || 500,
-                    message: error.message
-                }
-            }
-        }
+    async setOfflineMic(channelId: string): Promise<boolean> {
+        const result = await this.request.delete(`/channels/${channelId}/mic`)
+        return result.status === 204
     }
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.9](https://github.com/zhinjs/qq-official-bot/compare/v1.0.8...v1.0.9) (2025-07-20)
+
+
+### Bug Fixes
+
+* 移除无用依赖 ([4721390](https://github.com/zhinjs/qq-official-bot/commit/47213908dcf87e7ad77aa816069c4a1ded6e3d84))
+* 移除无用依赖 ([fdbf6b6](https://github.com/zhinjs/qq-official-bot/commit/fdbf6b6a0ee0e8fc1658d93ebe84446bcf6e1f0a))
+
 ## [1.0.8](https://github.com/zhinjs/qq-official-bot/compare/v1.0.7...v1.0.8) (2025-07-20)
 
 

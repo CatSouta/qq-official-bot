@@ -25,7 +25,7 @@
         "README.md"
     ],
     "repository": {
-        "url": "https://github.com/zhinjs/qq-official-bot.git",
+        "url": "git+https://github.com/zhinjs/qq-official-bot.git",
         "type": "git"
     },
     "keywords": [
@@ -49,7 +49,7 @@
         "ts-node-dev": "^2.0.0",
         "tsc-alias": "^1.8.8",
         "tsconfig-paths": "^4.2.0",
-        "typescript": "^5.3.3",
-        "vitepress": "1.0.0-rc.39"
+        "typescript": "^5.9.2",
+        "vitepress": "^1.6.4"
     }
 }

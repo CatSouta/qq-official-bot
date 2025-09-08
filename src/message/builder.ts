@@ -400,7 +400,7 @@ export class MessageBuilder {
     this.contentType = 'multipart/form-data';
 
     if (Buffer.isBuffer(elem.data.file)) {
-      return new Blob([elem.data.file]);
+      return new Blob([Buffer.from(elem.data.file)]);
     } else if (typeof elem.data.file !== "string") {
       throw new Error("无效的文件参数: " + elem.data.file);
     } else if (elem.data.file.startsWith("base64://")) {

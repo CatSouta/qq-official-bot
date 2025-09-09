@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.11](https://github.com/zhinjs/qq-official-bot/compare/v1.0.10...v1.0.11) (2025-09-09)
+
+
+### Bug Fixes
+
+* pub error ([27f7179](https://github.com/zhinjs/qq-official-bot/commit/27f7179bb88cfd0e3df7305e2f885b6af3678466))
+* 允许多例 ([c9b2268](https://github.com/zhinjs/qq-official-bot/commit/c9b2268c0a9aac030b33ddde385cf756580e7b27))
+
 ## [1.0.10](https://github.com/zhinjs/qq-official-bot/compare/v1.0.9...v1.0.10) (2025-07-20)
 
 

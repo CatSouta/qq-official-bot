@@ -97,7 +97,7 @@ export class Session<T extends ReceiverMode, M extends ApplicationPlatform = nev
      * 创建对应模式的接收器
      */
     private createReceiver(){
-        return ReceiverFactory.createReceiver(this.bot.config.mode,this.bot.config as unknown as ResolveConfig<T, M>)
+        return ReceiverFactory.createReceiver(this.bot.config.appid,this.bot.config.mode,this.bot.config as unknown as ResolveConfig<T, M>)
     }
 
     /**

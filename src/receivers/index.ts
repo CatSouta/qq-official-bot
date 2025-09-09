@@ -39,18 +39,18 @@ export class ReceiverFactory {
     /**
      * 创建WebSocket接收器
      */
-    public static createWebSocketReceiver(config?: WebSocketReceiverConfig): WebSocketReceiver {
+    public static createWebSocketReceiver(appid:string,config?: WebSocketReceiverConfig): WebSocketReceiver {
         const receiver = new WebSocketReceiver(config);
-        this.registerReceiver(ReceiverMode.WEBSOCKET, receiver);
+        this.registerReceiver(appid,ReceiverMode.WEBSOCKET, receiver);
         return receiver;
     }
 
     /**
      * 创建Webhook接收器
      */
-    public static createWebhookReceiver(config: WebhookReceiverConfig): WebhookReceiver {
+    public static createWebhookReceiver(appid:string,config: WebhookReceiverConfig): WebhookReceiver {
         const receiver = new WebhookReceiver(config);
-        this.registerReceiver(ReceiverMode.WEBHOOK, receiver);
+        this.registerReceiver(appid,ReceiverMode.WEBHOOK, receiver);
         return receiver;
     }
 
@@ -58,10 +58,11 @@ export class ReceiverFactory {
      * 创建Middleware接收器
      */
     public static createMiddlewareReceiver<T extends ApplicationPlatform>(
+        appid:string,
         config: MiddlewareReceiverConfig
     ): MiddlewareReceiver<T> {
         const receiver = new MiddlewareReceiver<T>(config);
-        this.registerReceiver(ReceiverMode.MIDDLEWARE, receiver);
+        this.registerReceiver(appid,ReceiverMode.MIDDLEWARE, receiver);
         return receiver;
     }
 
@@ -69,18 +70,19 @@ export class ReceiverFactory {
      * 根据模式和配置创建接收器
      */
     public static createReceiver<T extends ReceiverMode=ReceiverMode,M extends ApplicationPlatform=ApplicationPlatform>(
+        appid:string,
         mode: T,
         config: ResolveConfig<T,M>
     ): ResolveReceiver<T,M> {
         switch (mode) {
             case ReceiverMode.WEBSOCKET:
-                return this.createWebSocketReceiver(config as WebSocketReceiverConfig) as ResolveReceiver<T,M>;
+                return this.createWebSocketReceiver(appid,config as WebSocketReceiverConfig) as ResolveReceiver<T,M>;
 
             case ReceiverMode.WEBHOOK:
-                return this.createWebhookReceiver(config as WebhookReceiverConfig) as ResolveReceiver<T,M>;
+                return this.createWebhookReceiver(appid,config as WebhookReceiverConfig) as ResolveReceiver<T,M>;
 
             case ReceiverMode.MIDDLEWARE:
-                return this.createMiddlewareReceiver(config as MiddlewareReceiverConfig) as ResolveReceiver<T,M>;
+                return this.createMiddlewareReceiver(appid,config as MiddlewareReceiverConfig) as ResolveReceiver<T,M>;
 
             default:
                 throw new Error(`Unknown receiver mode: ${mode}`);
@@ -90,9 +92,10 @@ export class ReceiverFactory {
     /**
      * 注册接收器实例
      */
-    public static registerReceiver(mode: string, receiver: BaseReceiver): void {
-        if (this.receivers.has(mode)) {
-            throw new Error(`Receiver mode ${mode} already exists`);
+    public static registerReceiver(appid:string,mode: ReceiverMode, receiver: BaseReceiver): void {
+        const key=`${appid}:${mode}`
+        if (this.receivers.has(key)) {
+            throw new Error(`Receiver mode ${mode} for ${appid} already exists`);
         }
         this.receivers.set(mode, receiver);
     }
@@ -100,15 +103,17 @@ export class ReceiverFactory {
     /**
      * 获取注册的接收器实例
      */
-    public static getReceiver(mode: string): BaseReceiver | undefined {
-        return this.receivers.get(mode);
+    public static getReceiver(appid:string,mode: string): BaseReceiver | undefined {
+        const key=`${appid}:${mode}`
+        return this.receivers.get(key);
     }
 
     /**
      * 移除接收器实例
      */
-    public static removeReceiver(mode: string): boolean {
-        return this.receivers.delete(mode);
+    public static removeReceiver(appid:string,mode: string): boolean {
+        const key=`${appid}:${mode}`
+        return this.receivers.delete(key);
     }
 
     /**

@@ -80,7 +80,7 @@ export namespace Message {
     export type SubType = 'direct' | 'friend' | 'temp' | 'normal'
 
     export function parse(this: Bot<ReceiverMode>, payload: Dict) {
-        let template = payload.content || ''
+        let template = (payload.content || '').trimStart();
         let result: MessageElem[] = []
         let brief: string = ''
         // 1. 处理文字表情混排

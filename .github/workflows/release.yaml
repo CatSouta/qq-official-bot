@@ -21,7 +21,7 @@ jobs:
       # Setup node
       - uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 24
           registry-url: 'https://registry.npmjs.org'
         if: ${{ steps.release.outputs.release_created }}
       # Install dependencies
@@ -32,6 +32,4 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
       # Publish to npm
       - run: npm run pub
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
         if: ${{ steps.release.outputs.release_created }}

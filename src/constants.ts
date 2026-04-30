@@ -88,15 +88,11 @@ export enum Intends {
     GUILD_MESSAGES = 1 << 9, // 私域频道消息事件
     GUILD_MESSAGE_REACTIONS = 1 << 10, // 频道消息表态事件
     DIRECT_MESSAGE = 1 << 12, // 频道私信事件
-    OPEN_FORUMS_EVENTS = 1 << 18,
-    AUDIO_OR_LIVE_CHANNEL_MEMBERS = 1 << 19, // 音频或直播频道成员
-    // GROUP_MESSAGE_CREATE = 1 << 24, // 群聊消息事件
-    C2C_MESSAGE_CREATE = 1 << 25, // 私聊消息事件
-    GROUP_AT_MESSAGE_CREATE = 1 << 25, // 群聊@消息事件
+    GROUP_AND_C2C_EVENT = 1 << 25, // 私聊与群聊消息事件
     INTERACTION = 1 << 26, // 互动事件
     MESSAGE_AUDIT = 1 << 27, // 消息审核事件
-    FORUMS_EVENTS = 1 << 28, // 论坛事件(仅私域)
-    AUDIO_ACTIONS = 1 << 29, // 音频操作事件
+    FORUMS_EVENT = 1 << 28, // 论坛事件(仅私域)
+    AUDIO_ACTION = 1 << 29, // 音频操作事件
     PUBLIC_GUILD_MESSAGES = 1 << 30,// 公域机器人消息事件
 }
 
@@ -111,24 +107,16 @@ export type Intent =
     | 'GUILD_MESSAGE_REACTIONS'
     // 频道私信事件
     | 'DIRECT_MESSAGE'
-    // 频道成员变更事件
-    | 'AUDIO_OR_LIVE_CHANNEL_MEMBERS'
-    // 群聊消息事件
-    | 'GROUP_MESSAGE_CREATE'
-    // 私聊消息事件
-    | 'C2C_MESSAGE_CREATE'
-    // 群聊@消息事件
-    | 'GROUP_AT_MESSAGE_CREATE'
+    // 私聊与群聊消息事件
+    | 'GROUP_AND_C2C_EVENT'
     // 互动事件
     | 'INTERACTION'
     // 消息审核事件
     | 'MESSAGE_AUDIT'
     // 论坛事件(仅私域)
-    | 'FORUMS_EVENTS'
-    // 论坛事件(仅公域)
-    | 'OPEN_FORUMS_EVENTS'
+    | 'FORUMS_EVENT'
     // 音频操作事件
-    | 'AUDIO_ACTIONS'
+    | 'AUDIO_ACTION'
     // 公域机器人消息事件
     | 'PUBLIC_GUILD_MESSAGES'
 

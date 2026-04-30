@@ -23,10 +23,8 @@ export interface SendResult {
 }
 
 export class MessageService {
-    private fileProcessor: FileProcessor;
 
     constructor(private request: AxiosInstance, private appid: string) {
-        this.fileProcessor = new FileProcessor(this.request);
     }
 
     /**
@@ -126,28 +124,25 @@ export class MessageService {
         
         // 处理文件发送
         if (buildResult.isFile) {
-            return await this.sendFile(endpointPath, buildResult);
+            buildResult.messagePayload.media = await this.uploadFile(endpointPath, buildResult);
         }
 
         // 发送普通消息
         return await this.sendRegularMessage(endpointPath, buildResult, options);
 
     }
-
     /**
-     * 发送文件消息
+     * 上传文件
      */
-    private async sendFile(endpointPath: string, buildResult: BuildResult): Promise<SendResult> {
+    private async uploadFile(endpointPath: string, buildResult: BuildResult): Promise<Message.FileInfo> {
         const { data: result } = await this.request.post<Message.FileInfo>(
             endpointPath + '/files',
-            buildResult.filePayload
+            {
+                ...buildResult.filePayload,
+                srv_send_msg: false
+            }
         );
-
-        return {
-            id: result.file_uuid || '',
-            timestamp: Date.now() / 1000,
-            ...result
-        };
+        return result;
     }
 
     /**

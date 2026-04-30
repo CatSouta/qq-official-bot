@@ -28,8 +28,8 @@ export interface MessagePayload {
 }
 
 export interface FilePayload {
-  srv_send_msg: boolean;
   file_type?: number;
+  url: string
   file_data?: any;
 }
 
@@ -64,7 +64,7 @@ export class MessageBuilder {
     };
 
     this.filePayload = {
-      srv_send_msg: true
+      url: ''
     };
 
     if (source?.id) {
@@ -213,14 +213,14 @@ export class MessageBuilder {
     const mediaType = this.getMediaType(elem.type);
 
     // 如果是回复消息，需要特殊处理
-    if (this.messagePayload.msg_id || this.messagePayload.event_id) {
+    if (this.messagePayload.msg_id || this.messagePayload.event_id) {// 频道消息的文件处理
+      const {url,blob,base64} = await this.formatMediaData(elem);
       if (this.isGuild) {
-        // 频道消息的文件处理
-        const fileData = await this.prepareGuildMediaData(elem);
-        if (typeof fileData !== 'string') {
-          this.messagePayload.file_image = fileData;
+        this.contentType = 'multipart/form-data';
+        if (blob) {
+          this.messagePayload.file_image = blob;
         } else {
-          this.messagePayload.image = elem.data.file as string;
+          this.messagePayload.image = url;
         }
       } else {
         // 群聊/私聊消息的文件处理
@@ -228,19 +228,29 @@ export class MessageBuilder {
         // 这里需要调用上传接口，暂时标记为需要文件上传
         this.isFile = true;
         this.filePayload.file_type = mediaType;
+          if(base64) {
+          this.filePayload.file_data = base64;
+        } else {
+          this.filePayload.url = url;
+        }
       }
     } else {
+      const {url,blob,base64} = await this.formatMediaData(elem);
       // 非回复消息的处理
       if (this.isGuild) {
-        const fileData = await this.prepareGuildMediaData(elem);
-        if (typeof fileData !== 'string') {
-          this.messagePayload.file_image = fileData;
+        if (blob) {
+          this.messagePayload.file_image = blob;
         } else {
-          this.messagePayload.image = elem.data.file as string;
+          this.messagePayload.image = url;
         }
       } else {
         this.isFile = true;
         this.filePayload.file_type = mediaType;
+        if(base64) {
+          this.filePayload.file_data = base64;
+        } else {
+          this.filePayload.url = url;
+        }
       }
     }
 
@@ -390,27 +400,46 @@ export class MessageBuilder {
   /**
    * 准备频道媒体数据
    */
-  private async prepareGuildMediaData(elem: ImageElem | VideoElem | AudioElem): Promise<any> {
-    if ('url' in elem && elem.url) return elem.url;
+  private async formatMediaData(elem: ImageElem | VideoElem | AudioElem): Promise<{
+    url: string;
+    blob?: Blob;
+    base64?: string;
+  }> {
+    if ('url' in elem.data && elem.data.url) return { url: elem.data.url };
 
     if (typeof elem.data.file === "string" && elem.data.file.startsWith('http')) {
-      return elem.data.file;
+      return { url: elem.data.file };
     }
 
-    this.contentType = 'multipart/form-data';
 
     if (Buffer.isBuffer(elem.data.file)) {
-      return new Blob([Buffer.from(elem.data.file)]);
+      return { 
+        url: '',
+        blob: new Blob([Buffer.from(elem.data.file)]),
+        base64: elem.data.file.toString('base64')
+       };
     } else if (typeof elem.data.file !== "string") {
       throw new Error("无效的文件参数: " + elem.data.file);
     } else if (elem.data.file.startsWith("base64://")) {
-      return new Blob([Buffer.from(elem.data.file.slice(9), 'base64')]);
+      return { 
+        url: '',
+        blob: new Blob([Buffer.from(elem.data.file.slice(9), 'base64')]),
+        base64: elem.data.file.slice(9)
+      };
     } else if (/^data:[^/]+\/[^;]+;base64,/.test(elem.data.file)) {
-      return new Blob([Buffer.from(elem.data.file.replace(/^data:[^/]+\/[^;]+;base64,/, ''), 'base64')]);
+      return { 
+        url: '',
+        blob: new Blob([Buffer.from(elem.data.file.replace(/^data:[^/]+\/[^;]+;base64,/, ''), 'base64')]),
+        base64: elem.data.file.replace(/^data:[^/]+\/[^;]+;base64,/, '')
+      };
     } else {
       try {
         const fs = require('node:fs/promises');
-        return new Blob([await fs.readFile(elem.data.file.replace("file://", ""))]);
+        return { 
+          url: '',
+          blob: new Blob([await fs.readFile(elem.data.file.replace("file://", ""))]),
+          base64: (await fs.readFile(elem.data.file.replace("file://", ""))).toString('base64')
+        };
       } catch {
         throw new Error("无效的文件路径: " + elem.data.file);
       }

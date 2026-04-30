@@ -183,7 +183,7 @@ export namespace Message {
                 }
                 result.push({
                     type,
-                    ...data,
+                    data,
                 })
                 brief += `<${type},${Object.entries(data).map(([key, value]) => `${key}=${value}`).join(',')}>`
             }

@@ -11,6 +11,7 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
+      
       - uses: googleapis/release-please-action@v4
         id: release
         with:
@@ -18,6 +19,10 @@ jobs:
       # Checkout
       - uses: actions/checkout@v4
         if: ${{ steps.release.outputs.release_created }}
+      - name: setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.2
       # Setup node
       - uses: actions/setup-node@v4
         with:
@@ -25,11 +30,11 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
         if: ${{ steps.release.outputs.release_created }}
       # Install dependencies
-      - run: npm install
+      - run: pnpm install
         if: ${{ steps.release.outputs.release_created }}
       # Build output
-      - run: npm run build
+      - run: pnpm run build
         if: ${{ steps.release.outputs.release_created }}
       # Publish to npm
-      - run: npm run pub
+      - run: pnpm run pub
         if: ${{ steps.release.outputs.release_created }}

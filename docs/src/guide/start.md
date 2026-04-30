@@ -59,8 +59,7 @@ const bot = new Bot({
         'GUILD_MESSAGES',           // 频道消息事件
         'GUILD_MESSAGE_REACTIONS',  // 频道消息表态事件
         'DIRECT_MESSAGE',           // 频道私信事件
-        'GROUP_AT_MESSAGE_CREATE',  // 群聊@消息事件
-        'C2C_MESSAGE_CREATE',       // 私聊消息事件
+        'GROUP_AND_C2C_EVENT',  // 群聊@与私聊消息事件
     ],
     mode: ReceiverMode.WEBSOCKET,   // WebSocket 连接模式
 })

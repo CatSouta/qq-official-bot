@@ -50,8 +50,7 @@ const bot = new Bot({
     logLevel: 'info',               // 日志级别
     maxRetry: 10,                   // 最大重连次数
     intents: [
-        'GROUP_AT_MESSAGE_CREATE',     // 群聊@消息事件
-        'C2C_MESSAGE_CREATE',          // 私聊消息事件
+        'GROUP_AND_C2C_EVENT',     // 群聊@消息与私聊事件
         'GUILD_MESSAGES',              // 频道消息事件
         'DIRECT_MESSAGE',              // 频道私信事件
         'GUILD_MESSAGE_REACTIONS',     // 频道消息表态事件
@@ -242,15 +241,28 @@ interface BotConfig {
 
 ```typescript
 type Intent = 
-    | 'GUILDS'                    // 频道变更事件
-    | 'GUILD_MEMBERS'             // 频道成员变更事件
-    | 'GUILD_MESSAGES'            // 频道消息事件（私域）
-    | 'PUBLIC_GUILD_MESSAGES'     // 频道消息事件（公域）
-    | 'GUILD_MESSAGE_REACTIONS'   // 频道消息表态事件
-    | 'DIRECT_MESSAGE'            // 频道私信事件
-    | 'GROUP_AT_MESSAGE_CREATE'   // 群聊@消息事件
-    | 'C2C_MESSAGE_CREATE'        // 私聊消息事件
-    | 'MESSAGE_AUDIT'             // 消息审核事件
+    // 频道事件
+    | 'GUILDS'
+    // 频道成员事件
+    | 'GUILD_MEMBERS'
+    // 频道消息事件
+    | 'GUILD_MESSAGES'
+    // 频道消息表态事件
+    | 'GUILD_MESSAGE_REACTIONS'
+    // 频道私信事件
+    | 'DIRECT_MESSAGE'
+    // 私聊与群聊消息事件
+    | 'GROUP_AND_C2C_EVENT'
+    // 互动事件
+    | 'INTERACTION'
+    // 消息审核事件
+    | 'MESSAGE_AUDIT'
+    // 论坛事件(仅私域)
+    | 'FORUMS_EVENT'
+    // 音频操作事件
+    | 'AUDIO_ACTION'
+    // 公域机器人消息事件
+    | 'PUBLIC_GUILD_MESSAGES'
 ```
 
 ## 🎨 消息构建

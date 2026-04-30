@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.13](https://github.com/zhinjs/qq-official-bot/compare/v1.0.12...v1.0.13) (2026-04-30)
+
+
+### Bug Fixes
+
+* for build ([c262a2d](https://github.com/zhinjs/qq-official-bot/commit/c262a2de2521242717c814c0cb336864c15363e9))
+
 ## [1.0.12](https://github.com/zhinjs/qq-official-bot/compare/v1.0.11...v1.0.12) (2026-01-21)
 
 

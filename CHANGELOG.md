@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/zhinjs/qq-official-bot/compare/v1.0.13...v1.1.0) (2026-05-14)
+
+
+### Features
+
+* add event GROUP_MESSAGE_CREATE ([77211a4](https://github.com/zhinjs/qq-official-bot/commit/77211a49acb4bc92d9c0f57de07aefd7a2bd1751))
+
+
+### Bug Fixes
+
+* auth use bot ([1b86295](https://github.com/zhinjs/qq-official-bot/commit/1b862954d7aeb7eb31a98327ccc6df6d2a993a8c))
+
 ## [1.0.13](https://github.com/zhinjs/qq-official-bot/compare/v1.0.12...v1.0.13) (2026-04-30)
 
 

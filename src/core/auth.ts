@@ -33,6 +33,7 @@ export class Auth {
   private config: AuthConfig;
   private currentToken?: TokenInfo;
   private refreshTimer?: NodeJS.Timeout;
+  private refreshRetryCount: number = 0;
   private gatewayInfo?: GatewayInfo;
 
   constructor(config: AuthConfig,public bot: Client) {
@@ -200,6 +201,7 @@ export class Auth {
    */
   private setToken(tokenInfo: TokenInfo): void {
     this.currentToken = tokenInfo;
+    this.refreshRetryCount = 0;
     this.scheduleTokenRefresh();
 
     this.bot.logger.info("[AUTH] 访问令牌已设置", {
@@ -233,7 +235,7 @@ export class Auth {
     const nextRefreshTime = refreshTime > 0 ? refreshTime : fallbackRefreshTime;
 
     if (refreshTime <= 0) {
-      this.bot.logger.warn(`[AUTH] 令牌剩余有效期(${remainingTokenLifetime}ms)小于等于刷新缓冲(${this.config.tokenRefreshBuffer}s)，使用保底定时器 ${nextRefreshTime}ms`);
+      this.bot.logger.warn(`[AUTH] 令牌剩余有效期(${remainingTokenLifetime}ms)小于等于刷新缓冲(${this.config.tokenRefreshBuffer! * 1000}ms)，使用保底定时器 ${nextRefreshTime}ms`);
     }
 
     this.refreshTimer = setTimeout(async () => {
@@ -252,6 +254,13 @@ export class Auth {
   private scheduleTokenRefreshRetry(): void {
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer);
+    }
+
+    this.refreshRetryCount += 1;
+    if (this.refreshRetryCount > this.config.maxRetries!) {
+      this.bot.logger.error(`[AUTH] 自动刷新重试次数超过上限(${this.config.maxRetries})，停止自动重试`);
+      this.refreshTimer = undefined;
+      return;
     }
 
     this.refreshTimer = setTimeout(async () => {

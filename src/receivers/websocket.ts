@@ -432,6 +432,7 @@ export class WebSocketReceiver extends BaseReceiver<WebSocketHandler> {
 
         this.isClosed = true;
         this.clearTimers();
+        let hasInternalReconnect = false;
 
         if (this.session.userClose) {
             this.session.getBot().logger.info('[WebSocketReceiver] 用户主动关闭连接');
@@ -450,18 +451,22 @@ export class WebSocketReceiver extends BaseReceiver<WebSocketHandler> {
         if (reasonInfo) {
             this.session.getBot().logger.info(`[WebSocketReceiver] 连接关闭：${reasonInfo.reason}`);
             if (reasonInfo.resume) {
+                hasInternalReconnect = true;
                 this.reconnect();
             }
         } else {
             this.session.getBot().logger.warn(`[WebSocketReceiver] 连接关闭，未知错误代码: ${code}, 原因: ${reason.toString() || 'unknown'}`);
             if (this.retryCount < this.config.maxRetries) {
+                hasInternalReconnect = true;
                 this.reconnect(false);
             } else {
                 this.session.getBot().logger.error('[WebSocketReceiver] 重连次数过多，停止重连');
             }
         }
 
-        this.emitClose(code, reason.toString());
+        if (!hasInternalReconnect) {
+            this.emitClose(code, reason.toString());
+        }
     }
 
     /**

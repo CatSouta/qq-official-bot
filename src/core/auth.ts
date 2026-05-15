@@ -220,16 +220,20 @@ export class Auth {
       return;
     }
 
+    const remainingTokenLifetime = this.currentToken.expires_at
+      ? Math.max(this.currentToken.expires_at - Date.now(), Auth.MIN_REFRESH_DELAY_MS)
+      : Math.max(this.currentToken.expires_in * 1000, Auth.MIN_REFRESH_DELAY_MS);
+
     // 计算刷新时间（提前缓冲时间刷新）
-    const refreshTime = (this.currentToken.expires_in - this.config.tokenRefreshBuffer!) * 1000;
+    const refreshTime = remainingTokenLifetime - (this.config.tokenRefreshBuffer! * 1000);
     const fallbackRefreshTime = Math.max(
-      Math.floor(this.currentToken.expires_in * 1000 * Auth.FALLBACK_REFRESH_RATIO),
+      Math.floor(remainingTokenLifetime * Auth.FALLBACK_REFRESH_RATIO),
       Auth.MIN_REFRESH_DELAY_MS
     );
     const nextRefreshTime = refreshTime > 0 ? refreshTime : fallbackRefreshTime;
 
     if (refreshTime <= 0) {
-      this.bot.logger.warn(`[AUTH] 令牌有效期(${this.currentToken.expires_in}s)小于等于刷新缓冲(${this.config.tokenRefreshBuffer}s)，使用保底定时器 ${nextRefreshTime}ms`);
+      this.bot.logger.warn(`[AUTH] 令牌剩余有效期(${remainingTokenLifetime}ms)小于等于刷新缓冲(${this.config.tokenRefreshBuffer}s)，使用保底定时器 ${nextRefreshTime}ms`);
     }
 
     this.refreshTimer = setTimeout(async () => {
@@ -238,13 +242,27 @@ export class Auth {
         await this.refreshAccessToken();
       } catch (error) {
         this.bot.logger.error("[AUTH] 自动刷新令牌失败:", error);
-        // 如果自动刷新失败，可以设置一个较短的重试时间
-        clearTimeout(this.refreshTimer);
-        this.refreshTimer = setTimeout(() => this.scheduleTokenRefresh(), Auth.REFRESH_RETRY_DELAY_MS);
+        this.scheduleTokenRefreshRetry();
       }
     }, nextRefreshTime);
 
     this.bot.logger.debug(`[AUTH] 令牌刷新已计划，将在 ${nextRefreshTime / 1000} 秒后执行`);
+  }
+
+  private scheduleTokenRefreshRetry(): void {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+    }
+
+    this.refreshTimer = setTimeout(async () => {
+      try {
+        this.bot.logger.debug("[AUTH] 重试刷新访问令牌");
+        await this.refreshAccessToken();
+      } catch (error) {
+        this.bot.logger.error("[AUTH] 重试刷新令牌失败:", error);
+        this.scheduleTokenRefreshRetry();
+      }
+    }, Auth.REFRESH_RETRY_DELAY_MS);
   }
 
   /**

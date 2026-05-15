@@ -19,9 +19,9 @@ export class WebSocketReceiverConfig extends BaseReceiverConfig {
         reconnectDelay?: number;
     } = {}) {
         super(ReceiverMode.WEBSOCKET);
-        this.heartbeatInterval = options.heartbeatInterval || 45000;
-        this.maxRetries = options.maxRetries || 10;
-        this.reconnectDelay = options.reconnectDelay || 1000;
+        this.heartbeatInterval = options.heartbeatInterval ?? 45000;
+        this.maxRetries = options.maxRetries ?? 10;
+        this.reconnectDelay = options.reconnectDelay ?? 1000;
     }
 
     public validate(): boolean {

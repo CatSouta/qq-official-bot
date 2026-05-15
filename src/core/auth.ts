@@ -219,7 +219,7 @@ export class Auth {
 
     // 计算刷新时间（提前缓冲时间刷新）
     const refreshTime = (this.currentToken.expires_in - this.config.tokenRefreshBuffer!) * 1000;
-    const fallbackRefreshTime = Math.max(this.currentToken.expires_in * 500, 1000);
+    const fallbackRefreshTime = Math.max(Math.floor(this.currentToken.expires_in * 1000 * 0.5), 1000);
     const nextRefreshTime = refreshTime > 0 ? refreshTime : fallbackRefreshTime;
 
     if (refreshTime <= 0) {

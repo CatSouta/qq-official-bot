@@ -98,12 +98,7 @@ export class Session<T extends ReceiverMode, M extends ApplicationPlatform = nev
      */
     private createReceiver(){
         if (this.bot.config.mode === ReceiverMode.WEBSOCKET) {
-            const config = this.bot.config as unknown as {
-                heartbeatInterval?: number;
-                maxRetries?: number;
-                maxRetry?: number;
-                reconnectDelay?: number;
-            };
+            const config = this.bot.config as Client.Config<ReceiverMode.WEBSOCKET, M>;
             const websocketConfig = ReceiverConfigBuilder.websocket({
                 heartbeatInterval: config.heartbeatInterval,
                 maxRetries: config.maxRetries ?? config.maxRetry,

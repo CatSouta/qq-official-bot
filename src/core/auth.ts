@@ -233,6 +233,9 @@ export class Auth {
       } catch (error) {
         this.bot.logger.error("[AUTH] 自动刷新令牌失败:", error);
         // 如果自动刷新失败，可以设置一个较短的重试时间
+        if (this.refreshTimer) {
+          clearTimeout(this.refreshTimer);
+        }
         this.refreshTimer = setTimeout(() => this.scheduleTokenRefresh(), 10000);
       }
     }, nextRefreshTime);

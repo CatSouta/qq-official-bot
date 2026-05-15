@@ -200,7 +200,11 @@ export class Auth {
    * 设置令牌并启动自动刷新
    */
   private setToken(tokenInfo: TokenInfo): void {
-    this.currentToken = tokenInfo;
+    const expiresAt = tokenInfo.expires_at ?? (Date.now() + tokenInfo.expires_in * 1000);
+    this.currentToken = {
+      ...tokenInfo,
+      expires_at: expiresAt
+    };
     this.refreshRetryCount = 0;
     this.scheduleTokenRefresh();
 
@@ -256,12 +260,12 @@ export class Auth {
       clearTimeout(this.refreshTimer);
     }
 
-    this.refreshRetryCount += 1;
-    if (this.refreshRetryCount > this.config.maxRetries!) {
+    if (this.refreshRetryCount >= this.config.maxRetries!) {
       this.bot.logger.error(`[AUTH] 自动刷新重试次数超过上限(${this.config.maxRetries})，停止自动重试`);
       this.refreshTimer = undefined;
       return;
     }
+    this.refreshRetryCount += 1;
 
     this.refreshTimer = setTimeout(async () => {
       try {

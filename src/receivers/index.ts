@@ -9,7 +9,7 @@ export type ResolveReceiver<T extends ReceiverMode, M extends ApplicationPlatfor
         T extends ReceiverMode.MIDDLEWARE ? MiddlewareReceiver<M> :
             WebhookReceiver;
 export type ResolveConfig<T extends ReceiverMode,M extends ApplicationPlatform=never>=
-    T extends ReceiverMode.MIDDLEWARE ? ReceiveModeConfig<M>['websocket'] :
+    T extends ReceiverMode.WEBSOCKET ? ReceiveModeConfig<M>['websocket'] :
         T extends ReceiverMode.MIDDLEWARE ? ReceiveModeConfig<M>['middleware'] :
             ReceiveModeConfig<M>['webhook']
 export interface ReceiveModeConfig<M extends ApplicationPlatform> {

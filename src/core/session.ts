@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { Client } from "@/client";
-import {ReceiverMode, ApplicationPlatform, ResolveConfig} from "@/receivers";
+import {ReceiverMode, ApplicationPlatform, ResolveConfig, ReceiverConfigBuilder} from "@/receivers";
 import { Intends, SessionEvents } from "@/constants";
 import { DataPacket } from "@/types";
 
@@ -76,7 +76,7 @@ export class Session<T extends ReceiverMode, M extends ApplicationPlatform = nev
             appid: bot.config.appid,
             secret: bot.config.secret,
             maxRetries: 3,
-            tokenRefreshBuffer: 60
+            tokenRefreshBuffer: 45
         },bot);
 
         // 初始化连接管理器
@@ -97,6 +97,20 @@ export class Session<T extends ReceiverMode, M extends ApplicationPlatform = nev
      * 创建对应模式的接收器
      */
     private createReceiver(){
+        if (this.bot.config.mode === ReceiverMode.WEBSOCKET) {
+            const config = this.bot.config as unknown as {
+                heartbeatInterval?: number;
+                maxRetries?: number;
+                maxRetry?: number;
+                reconnectDelay?: number;
+            };
+            const websocketConfig = ReceiverConfigBuilder.websocket({
+                heartbeatInterval: config.heartbeatInterval,
+                maxRetries: config.maxRetries ?? config.maxRetry,
+                reconnectDelay: config.reconnectDelay
+            });
+            return ReceiverFactory.createReceiver(this.bot.config.appid, this.bot.config.mode, websocketConfig as ResolveConfig<T, M>);
+        }
         return ReceiverFactory.createReceiver(this.bot.config.appid,this.bot.config.mode,this.bot.config as unknown as ResolveConfig<T, M>)
     }
 

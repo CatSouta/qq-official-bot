@@ -455,7 +455,7 @@ export class WebSocketReceiver extends BaseReceiver<WebSocketHandler> {
         } else {
             this.session.getBot().logger.warn(`[WebSocketReceiver] 连接关闭，未知错误代码: ${code}, 原因: ${reason.toString() || 'unknown'}`);
             if (this.retryCount < this.config.maxRetries) {
-                this.reconnect();
+                this.reconnect(false);
             } else {
                 this.session.getBot().logger.error('[WebSocketReceiver] 重连次数过多，停止重连');
             }
@@ -467,25 +467,26 @@ export class WebSocketReceiver extends BaseReceiver<WebSocketHandler> {
     /**
      * 重连逻辑
      */
-    private async reconnect(): Promise<void> {
+    private async reconnect(resume: boolean = true): Promise<void> {
         if (!this.session) return;
 
         this.retryCount++;
         this.session.getBot().logger.error(`[WebSocketReceiver] 连接断开，第${this.retryCount}次重连...`);
 
         // 指数退避策略
-        const delay = Math.min(this.config.reconnectDelay * Math.pow(2, this.retryCount - 1), 30000);
+        const reconnectDelay = this.config.reconnectDelay || 5000;
+        const delay = Math.min(reconnectDelay * Math.pow(2, this.retryCount - 1), 30000);
         this.session.getBot().logger.debug(`[WebSocketReceiver] 等待 ${delay}ms 后重连`);
 
         await new Promise(resolve => setTimeout(resolve, delay));
 
-        this.isReconnect = true;
+        this.isReconnect = resume;
         try {
             await this.connect();
         } catch (error) {
             this.session.getBot().logger.error(`[WebSocketReceiver] 重连失败: ${error.message}`);
             if (this.retryCount < this.config.maxRetries) {
-                await this.reconnect();
+                await this.reconnect(resume);
             } else {
                 this.session.getBot().logger.error('[WebSocketReceiver] 重连次数达到上限，停止重连');
                 this.session.emit('max_retry_reached');

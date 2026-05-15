@@ -27,6 +27,9 @@ export interface TokenInfo {
  * 专门负责处理token获取、刷新和网关信息获取
  */
 export class Auth {
+  private static readonly MIN_REFRESH_DELAY_MS = 1000;
+  private static readonly FALLBACK_REFRESH_RATIO = 0.5;
+  private static readonly REFRESH_RETRY_DELAY_MS = 10000;
   private config: AuthConfig;
   private currentToken?: TokenInfo;
   private refreshTimer?: NodeJS.Timeout;
@@ -219,7 +222,10 @@ export class Auth {
 
     // 计算刷新时间（提前缓冲时间刷新）
     const refreshTime = (this.currentToken.expires_in - this.config.tokenRefreshBuffer!) * 1000;
-    const fallbackRefreshTime = Math.max(Math.floor(this.currentToken.expires_in * 1000 * 0.5), 1000);
+    const fallbackRefreshTime = Math.max(
+      Math.floor(this.currentToken.expires_in * 1000 * Auth.FALLBACK_REFRESH_RATIO),
+      Auth.MIN_REFRESH_DELAY_MS
+    );
     const nextRefreshTime = refreshTime > 0 ? refreshTime : fallbackRefreshTime;
 
     if (refreshTime <= 0) {
@@ -236,7 +242,7 @@ export class Auth {
         if (this.refreshTimer) {
           clearTimeout(this.refreshTimer);
         }
-        this.refreshTimer = setTimeout(() => this.scheduleTokenRefresh(), 10000);
+        this.refreshTimer = setTimeout(() => this.scheduleTokenRefresh(), Auth.REFRESH_RETRY_DELAY_MS);
       }
     }, nextRefreshTime);
 

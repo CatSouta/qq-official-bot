@@ -37,10 +37,10 @@
     "license": "MIT",
     "dependencies": {
         "@noble/curves": "^1.6.0",
-        "axios": "1.8.2",
+        "axios": "1.16.1",
         "formdata-node": "^6.0.3",
         "log4js": "^6.9.1",
-        "ws": "^8.18.0"
+        "ws": "^8.20.1"
     },
     "devDependencies": {
         "@types/node": "^20.11.5",

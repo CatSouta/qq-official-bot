@@ -27,14 +27,18 @@ export interface TokenInfo {
  * 专门负责处理token获取、刷新和网关信息获取
  */
 export class Auth {
+  private static readonly MIN_REFRESH_DELAY_MS = 1000;
+  private static readonly FALLBACK_REFRESH_RATIO = 0.5;
+  private static readonly REFRESH_RETRY_DELAY_MS = 10000;
   private config: AuthConfig;
   private currentToken?: TokenInfo;
   private refreshTimer?: NodeJS.Timeout;
+  private refreshRetryCount: number = 0;
   private gatewayInfo?: GatewayInfo;
 
   constructor(config: AuthConfig,public bot: Client) {
     this.config = {
-      tokenRefreshBuffer: 60, // 提前60秒刷新
+      tokenRefreshBuffer: 45, // 提前45秒刷新
       maxRetries: 3,
       retryDelay: 1000,
       ...config
@@ -196,7 +200,12 @@ export class Auth {
    * 设置令牌并启动自动刷新
    */
   private setToken(tokenInfo: TokenInfo): void {
-    this.currentToken = tokenInfo;
+    const expiresAt = tokenInfo.expires_at ?? (Date.now() + tokenInfo.expires_in * 1000);
+    this.currentToken = {
+      ...tokenInfo,
+      expires_at: expiresAt
+    };
+    this.refreshRetryCount = 0;
     this.scheduleTokenRefresh();
 
     this.bot.logger.info("[AUTH] 访问令牌已设置", {
@@ -217,23 +226,56 @@ export class Auth {
       return;
     }
 
+    const expiresAt = this.currentToken.expires_at ?? (Date.now() + this.currentToken.expires_in * 1000);
+    const remainingTokenLifetime = Math.max(expiresAt - Date.now(), Auth.MIN_REFRESH_DELAY_MS);
+
     // 计算刷新时间（提前缓冲时间刷新）
-    const refreshTime = (this.currentToken.expires_in - this.config.tokenRefreshBuffer!) * 1000;
+    const refreshTime = remainingTokenLifetime - (this.config.tokenRefreshBuffer! * 1000);
+    const fallbackRefreshTime = Math.max(
+      Math.floor(remainingTokenLifetime * Auth.FALLBACK_REFRESH_RATIO),
+      Auth.MIN_REFRESH_DELAY_MS
+    );
+    const nextRefreshTime = refreshTime > 0 ? refreshTime : fallbackRefreshTime;
 
-    if (refreshTime > 0) {
-      this.refreshTimer = setTimeout(async () => {
-        try {
-          this.bot.logger.debug("[AUTH] 自动刷新访问令牌");
-          await this.refreshAccessToken();
-        } catch (error) {
-          this.bot.logger.error("[AUTH] 自动刷新令牌失败:", error);
-          // 如果自动刷新失败，可以设置一个较短的重试时间
-          setTimeout(() => this.scheduleTokenRefresh(), 10000);
-        }
-      }, refreshTime);
-
-      this.bot.logger.debug(`[AUTH] 令牌刷新已计划，将在 ${refreshTime / 1000} 秒后执行`);
+    if (refreshTime <= 0) {
+      this.bot.logger.warn(`[AUTH] 令牌剩余有效期(${remainingTokenLifetime}ms)小于等于刷新缓冲(${this.config.tokenRefreshBuffer! * 1000}ms)，使用保底定时器 ${nextRefreshTime}ms`);
     }
+
+    this.refreshTimer = setTimeout(async () => {
+      try {
+        this.bot.logger.debug("[AUTH] 自动刷新访问令牌");
+        await this.refreshAccessToken();
+      } catch (error) {
+        this.bot.logger.error("[AUTH] 自动刷新令牌失败:", error);
+        this.scheduleTokenRefreshRetry();
+      }
+    }, nextRefreshTime);
+
+    this.bot.logger.debug(`[AUTH] 令牌刷新已计划，将在 ${nextRefreshTime / 1000} 秒后执行`);
+  }
+
+  private scheduleTokenRefreshRetry(): void {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+    }
+
+    const maxRetries = this.config.maxRetries ?? 3;
+    if (this.refreshRetryCount >= maxRetries) {
+      this.bot.logger.error(`[AUTH] 自动刷新重试次数超过上限(${maxRetries})，停止自动重试`);
+      this.refreshTimer = undefined;
+      return;
+    }
+    this.refreshRetryCount += 1;
+
+    this.refreshTimer = setTimeout(async () => {
+      try {
+        this.bot.logger.debug("[AUTH] 重试刷新访问令牌");
+        await this.refreshAccessToken();
+      } catch (error) {
+        this.bot.logger.error("[AUTH] 重试刷新令牌失败:", error);
+        this.scheduleTokenRefreshRetry();
+      }
+    }, Auth.REFRESH_RETRY_DELAY_MS);
   }
 
   /**

@@ -104,7 +104,7 @@ export class Session<T extends ReceiverMode, M extends ApplicationPlatform = nev
                 maxRetries: config.maxRetries ?? config.maxRetry,
                 reconnectDelay: config.reconnectDelay
             });
-            return ReceiverFactory.createReceiver(this.bot.config.appid, this.bot.config.mode, websocketConfig as ResolveConfig<T, M>);
+            return ReceiverFactory.createReceiver(this.bot.config.appid, this.bot.config.mode, websocketConfig as unknown as ResolveConfig<T, M>);
         }
         return ReceiverFactory.createReceiver(this.bot.config.appid,this.bot.config.mode,this.bot.config as unknown as ResolveConfig<T, M>)
     }

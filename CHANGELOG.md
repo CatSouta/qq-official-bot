@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.1](https://github.com/zhinjs/qq-official-bot/compare/v1.1.0...v1.1.1) (2026-05-16)
+
+
+### Bug Fixes
+
+* address timer and typing review feedback ([2bfcaf3](https://github.com/zhinjs/qq-official-bot/commit/2bfcaf3b5609f7dcf86b391f2142eb1c4ea12ff3))
+* avoid duplicate reconnect path on websocket close ([84aedff](https://github.com/zhinjs/qq-official-bot/commit/84aedffd6310be237849d0501b03ae6545f985e2))
+* cap auth auto-refresh retry attempts ([bb38832](https://github.com/zhinjs/qq-official-bot/commit/bb38832ee1a641c18ddd77b064f06d5eeaa0e683))
+* harden websocket reconnect and token refresh scheduling ([e8a8cf3](https://github.com/zhinjs/qq-official-bot/commit/e8a8cf30159aee06479a477e5075b34023dbec02))
+* improve token refresh retry timing and preserve websocket zero values ([c8e6684](https://github.com/zhinjs/qq-official-bot/commit/c8e66840410a8d4a497dc0be7459bde15b9492c2))
+* normalize token expiry and retry limit check ([aa86d71](https://github.com/zhinjs/qq-official-bot/commit/aa86d716fb4b236974d3b49c6b68c3b1b94cc1ca))
+
 ## [1.1.0](https://github.com/zhinjs/qq-official-bot/compare/v1.0.13...v1.1.0) (2026-05-14)
 
 

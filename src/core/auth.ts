@@ -226,9 +226,7 @@ export class Auth {
       return;
     }
 
-    const remainingTokenLifetime = this.currentToken.expires_at
-      ? Math.max(this.currentToken.expires_at - Date.now(), Auth.MIN_REFRESH_DELAY_MS)
-      : Math.max(this.currentToken.expires_in * 1000, Auth.MIN_REFRESH_DELAY_MS);
+    const remainingTokenLifetime = Math.max(this.currentToken.expires_at! - Date.now(), Auth.MIN_REFRESH_DELAY_MS);
 
     // 计算刷新时间（提前缓冲时间刷新）
     const refreshTime = remainingTokenLifetime - (this.config.tokenRefreshBuffer! * 1000);

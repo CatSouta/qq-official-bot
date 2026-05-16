@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/zhinjs/qq-official-bot/compare/v1.1.1...v1.1.2) (2026-05-16)
+
+
+### Bug Fixes
+
+* update type casting for receiver creation in session manager ([4247397](https://github.com/zhinjs/qq-official-bot/commit/4247397eb48f4596736f168e0893ff21636b4ef0))
+
 ## [1.1.1](https://github.com/zhinjs/qq-official-bot/compare/v1.1.0...v1.1.1) (2026-05-16)
 
 

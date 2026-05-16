@@ -226,7 +226,8 @@ export class Auth {
       return;
     }
 
-    const remainingTokenLifetime = Math.max(this.currentToken.expires_at! - Date.now(), Auth.MIN_REFRESH_DELAY_MS);
+    const expiresAt = this.currentToken.expires_at ?? (Date.now() + this.currentToken.expires_in * 1000);
+    const remainingTokenLifetime = Math.max(expiresAt - Date.now(), Auth.MIN_REFRESH_DELAY_MS);
 
     // 计算刷新时间（提前缓冲时间刷新）
     const refreshTime = remainingTokenLifetime - (this.config.tokenRefreshBuffer! * 1000);
@@ -258,8 +259,9 @@ export class Auth {
       clearTimeout(this.refreshTimer);
     }
 
-    if (this.refreshRetryCount >= this.config.maxRetries!) {
-      this.bot.logger.error(`[AUTH] 自动刷新重试次数超过上限(${this.config.maxRetries})，停止自动重试`);
+    const maxRetries = this.config.maxRetries ?? 3;
+    if (this.refreshRetryCount >= maxRetries) {
+      this.bot.logger.error(`[AUTH] 自动刷新重试次数超过上限(${maxRetries})，停止自动重试`);
       this.refreshTimer = undefined;
       return;
     }

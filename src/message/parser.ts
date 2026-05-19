@@ -189,7 +189,6 @@ export namespace Message {
             }
         }
         delete payload.attachments
-        delete payload.mentions
         return [result, brief]
     }
 }

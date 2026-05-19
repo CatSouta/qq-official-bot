@@ -8,8 +8,11 @@ export class NoticeEvent {
     channel_id?: string
     group_id?: string
     operator_id?: string
-
+    event_id?: string
+    notice_id?: string
     constructor(public bot: Bot, payload: Dict) {
+        this.event_id = payload.event_id
+        this.notice_id = payload.id
     }
 
 }
@@ -19,16 +22,12 @@ export namespace NoticeEvent {
 }
 
 export class ActionNoticeEvent extends NoticeEvent {
-    event_id: string
-    notice_id: string
     data: ActionNoticeEvent.ActionData
     private replied: boolean = false
 
     constructor(bot: Bot, payload: Dict) {
         super(bot, payload);
         this.sub_type = 'action'
-        this.event_id = payload.event_id
-        this.notice_id = payload.id
         this.data = payload.data
     }
 

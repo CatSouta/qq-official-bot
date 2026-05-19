@@ -44,13 +44,11 @@ export class Client<T extends ReceiverMode, M extends ApplicationPlatform = Appl
     removeAt(payload: Dict): void {
         if (this.config.removeAt === false) return;
 
-        const atRegex = new RegExp(`<@!${this.self_id}>`);
-        const isAtMe = atRegex.test(payload.content) &&
-                      payload.mentions?.some((mention: Dict) => mention.id === this.self_id);
-
-        if (isAtMe) {
-            payload.content = payload.content.replace(atRegex, '').trimStart();
-        }
+        let content = payload.content;
+        payload.mentions?.forEach((mention: Dict) => {
+            if (mention?.id) content = content.replace(new RegExp(`<@!?${mention.id}>\\s*`, 'g'), '');
+        });
+        payload.content = content.trimStart();
     }
 
     processPayload(event_id: string, event: string, payload: Dict): Dict | null {

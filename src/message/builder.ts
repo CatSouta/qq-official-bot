@@ -70,6 +70,10 @@ export class MessageBuilder {
     if (source?.id) {
       this.messagePayload.msg_id = source.id;
     }
+
+    if (source?.event_id) {
+      this.messagePayload.event_id = source.event_id;
+    }
   }
 
   /**

@@ -357,31 +357,43 @@ export class MessageBuilder {
    */
   private parseFromTemplate(template: string): MessageElem[] {
     const result: MessageElem[] = [];
-    const reg = /(<[^>]+>)/;
+    let cursor = 0;
 
-    while (template.length) {
-      const [match] = template.match(reg) || [];
-      if (!match) {
-        if (template) {
+    while (cursor < template.length) {
+      const tagStart = template.indexOf('<', cursor);
+      if (tagStart === -1) {
+        const text = template.slice(cursor);
+        if (text) {
           result.push({
             type: 'text',
-            data: { text: template }
+            data: { text }
           });
         }
         break;
       }
 
-      const index = template.indexOf(match);
-      const prevText = template.slice(0, index);
-
-      if (prevText) {
+      if (tagStart > cursor) {
         result.push({
           type: 'text',
-          data: { text: prevText }
+          data: { text: template.slice(cursor, tagStart) }
         });
       }
 
-      template = template.slice(index + match.length);
+      const tagEnd = template.indexOf('>', tagStart + 1);
+      if (tagEnd === -1) {
+        const text = template.slice(tagStart);
+        if (text) {
+          result.push({
+            type: 'text',
+            data: { text }
+          });
+        }
+        break;
+      }
+
+      const match = template.slice(tagStart, tagEnd + 1);
+      cursor = tagEnd + 1;
+
       const [type, ...attrArr] = match.slice(1, -1).split(',');
       const attrs = Object.fromEntries(attrArr.map((attr: string) => {
         const [key, value] = attr.split('=');
@@ -400,6 +412,7 @@ export class MessageBuilder {
 
     return result;
   }
+
 
   /**
    * 准备频道媒体数据

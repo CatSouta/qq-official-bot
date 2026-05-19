@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.3](https://github.com/zhinjs/qq-official-bot/compare/v1.1.2...v1.1.3) (2026-05-19)
+
+
+### Bug Fixes
+
+* remove version specification for pnpm setup in workflows ([c7fbd38](https://github.com/zhinjs/qq-official-bot/commit/c7fbd38afa67d38ee707dd64177c891f7fc4cc15))
+* update .gitignore and package dependencies, add pnpm overrides for esbuild and vite ([b10dda9](https://github.com/zhinjs/qq-official-bot/commit/b10dda9b874be2a749a5acdf23652292e82a479b))
+* update axios and ws dependencies to latest versions ([e603a2f](https://github.com/zhinjs/qq-official-bot/commit/e603a2f1fcd45657bbf3964abf8864e6a471df49))
+* 修复removeAt ([14ac67d](https://github.com/zhinjs/qq-official-bot/commit/14ac67db3a39abff67ea23530583210e2f3f2720))
+
 ## [1.1.2](https://github.com/zhinjs/qq-official-bot/compare/v1.1.1...v1.1.2) (2026-05-16)
 
 

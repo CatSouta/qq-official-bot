@@ -72,12 +72,18 @@ export class Session<T extends ReceiverMode, M extends ApplicationPlatform = nev
         super();
         this.bot = bot;
         // 初始化认证管理器
-        this.authManager = new Auth({
+        const authOptions: ConstructorParameters<typeof Auth>[0] = {
             appid: bot.config.appid,
             secret: bot.config.secret,
             maxRetries: 3,
             tokenRefreshBuffer: 45
-        },bot);
+        };
+        if (bot.config.mode === ReceiverMode.WEBSOCKET) {
+            const wsConfig = bot.config as Client.Config<ReceiverMode.WEBSOCKET, M>;
+            if (wsConfig.accessTokenUrl) authOptions.accessTokenUrl = wsConfig.accessTokenUrl;
+            if (wsConfig.gatewayUrl) authOptions.gatewayUrl = wsConfig.gatewayUrl;
+        }
+        this.authManager = new Auth(authOptions, bot);
 
         // 初始化连接管理器
         this.connectionManager = new Connection(bot, {

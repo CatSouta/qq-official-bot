@@ -248,6 +248,7 @@ export class MessageBuilder {
           this.messagePayload.image = url;
         }
       } else {
+        this.messagePayload.msg_type = 7;
         this.isFile = true;
         this.filePayload.file_type = mediaType;
         if(base64) {

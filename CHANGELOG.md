@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/zhinjs/qq-official-bot/compare/v1.2.0...v1.2.1) (2026-05-23)
+
+
+### Bug Fixes
+
+* set msg_type for non-reply private/group media messages ([78323b4](https://github.com/zhinjs/qq-official-bot/commit/78323b45c9ad95acb2381dfc28b9397246ea663f))
+
 ## [1.2.0](https://github.com/zhinjs/qq-official-bot/compare/v1.1.3...v1.2.0) (2026-05-19)
 
 

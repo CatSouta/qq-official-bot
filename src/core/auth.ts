@@ -10,6 +10,10 @@ import {GatewayInfo} from "@/types";
 export interface AuthConfig {
   appid: string;
   secret: string;
+  /** 获取 access token 的完整 URL，默认 https://bots.qq.com/app/getAppAccessToken */
+  accessTokenUrl?: string;
+  /** 获取网关信息的 URL 或路径，响应中的 url 为 WebSocket 地址；默认 /gateway/bot */
+  gatewayUrl?: string;
   tokenRefreshBuffer?: number; // 提前刷新token的时间缓冲（秒）
   maxRetries?: number;
   retryDelay?: number;
@@ -27,6 +31,8 @@ export interface TokenInfo {
  * 专门负责处理token获取、刷新和网关信息获取
  */
 export class Auth {
+  static readonly DEFAULT_ACCESS_TOKEN_URL = 'https://bots.qq.com/app/getAppAccessToken';
+  static readonly DEFAULT_GATEWAY_URL = '/gateway/bot';
   private static readonly MIN_REFRESH_DELAY_MS = 1000;
   private static readonly FALLBACK_REFRESH_RATIO = 0.5;
   private static readonly REFRESH_RETRY_DELAY_MS = 10000;
@@ -102,8 +108,9 @@ export class Auth {
       try {
         this.bot.logger.debug(`[AUTH] 获取访问令牌，尝试次数: ${attempt}`);
 
+        const tokenUrl = this.config.accessTokenUrl ?? Auth.DEFAULT_ACCESS_TOKEN_URL;
         const response: AxiosResponse<Client.Token> = await this.bot.request.post(
-          "https://bots.qq.com/app/getAppAccessToken",
+          tokenUrl,
           {
             appId: appid,
             clientSecret: secret
@@ -158,7 +165,8 @@ export class Auth {
       try {
         this.bot.logger.debug(`[AUTH] 获取网关信息，尝试次数: ${attempt}`);
 
-        const response = await this.bot.request.get("/gateway/bot", {
+        const gatewayUrl = this.config.gatewayUrl ?? Auth.DEFAULT_GATEWAY_URL;
+        const response = await this.bot.request.get(gatewayUrl, {
           headers: {
             Accept: "*/*",
             "Accept-Encoding": "utf-8",

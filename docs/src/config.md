@@ -26,7 +26,8 @@ interface Config<T extends ReceiverMode, M extends ApplicationPlatform> {
     timeout?: number                        // 请求超时时间(ms)，默认 5000
 
     // WebSocket 模式专用
-    // 无需额外配置
+    accessTokenUrl?: string               // 获取 token 的完整 URL，默认官方地址
+    gatewayUrl?: string                   // 获取网关信息的 URL 或路径，响应 url 为 WebSocket 地址
 
     // Webhook 模式专用
     port?: number                           // 监听端口，mode 为 webhook 时必填
@@ -65,9 +66,18 @@ const bot = new Bot({
     secret: 'your_app_secret',
     intents: ['GUILD_MESSAGES'],
     mode: ReceiverMode.WEBSOCKET,
-    // WebSocket 模式无需额外配置
+    accessTokenUrl: 'https://bots.qq.com/app/getAppAccessToken',
+    gatewayUrl: 'https://api.sgroup.qq.com/gateway/bot',
 })
 ```
+
+| 属性名 | 类型 | 必填 | 描述 | 默认值 |
+|-------|------|------|------|--------|
+| `accessTokenUrl` | `string` | ❌ | 获取 access token 的完整 URL | `https://bots.qq.com/app/getAppAccessToken` |
+| `gatewayUrl` | `string` | ❌ | 获取网关信息的 URL 或路径；响应中的 `url` 为 WebSocket 连接地址 | `/gateway/bot` |
+| `heartbeatInterval` | `number` | ❌ | 心跳间隔(ms) | `45000` |
+| `maxRetries` | `number` | ❌ | 连接重试次数 | `10` |
+| `reconnectDelay` | `number` | ❌ | 重连延迟(ms) | `1000` |
 
 #### Webhook 模式
 

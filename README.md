@@ -11,6 +11,7 @@
 
 - 🏗️ **模块化架构** - 采用服务化设计，职责分离，易于维护和扩展
 - 🔌 **多种连接方式** - 支持 WebSocket、Webhook 和中间件模式
+- 🌐 **自定义网关地址** - WebSocket 模式可配置 `accessTokenUrl` 与 `gatewayUrl`，便于代理或私有部署
 - 📝 **完整类型支持** - 使用 TypeScript 开发，提供完整的类型定义
 - 🚀 **简单易用** - 提供直观的 API 接口和丰富的示例
 - 🛠️ **功能全面** - 覆盖 QQ 官方 API 的所有功能
@@ -62,6 +63,21 @@ const bot = new Bot({
 
 // 启动机器人
 await bot.start()
+```
+
+如需通过代理或自建服务接入官方网关，可自定义认证与 gateway 接口地址（WebSocket 地址仍由 gateway 响应中的 `url` 字段返回）：
+
+```typescript
+const bot = new Bot({
+    appid: 'your_app_id',
+    secret: 'your_app_secret',
+    intents: ['GUILD_MESSAGES'],
+    mode: ReceiverMode.WEBSOCKET,
+    // 可选：自定义 token 接口（完整 URL）
+    accessTokenUrl: 'https://your-proxy.example.com/app/getAppAccessToken',
+    // 可选：自定义 gateway 接口（完整 URL 或相对路径）
+    gatewayUrl: 'https://your-proxy.example.com/gateway/bot',
+})
 ```
 
 ### 2. Webhook 连接模式
@@ -148,7 +164,7 @@ await bot.memberService.kickGuildMember(guild_id, user_id)
 const permissions = await bot.permissionService.getChannelUserPermissions(channel_id, user_id)
 await bot.permissionService.updateChannelUserPermissions(channel_id, user_id, 'add_permission', 'remove_permission')
 ```
-	## 🔧 服务模块架构
+## 🔧 服务模块架构
 
 项目采用服务模块化设计，每个服务负责特定的功能领域：
 
@@ -226,7 +242,11 @@ interface BotConfig {
     mode: ReceiverMode         // 连接模式
     
     // WebSocket 模式特有配置
-    // (无额外配置)
+    accessTokenUrl?: string    // 获取 access token 的完整 URL
+    gatewayUrl?: string        // 获取网关信息的 URL 或路径，响应 url 为 WebSocket 地址
+    heartbeatInterval?: number // 心跳间隔(ms)
+    maxRetries?: number        // 连接重试次数
+    reconnectDelay?: number    // 重连延迟(ms)
     
     // Webhook 模式特有配置
     port?: number              // 监听端口

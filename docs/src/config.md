@@ -61,13 +61,22 @@ interface Config<T extends ReceiverMode, M extends ApplicationPlatform> {
 ```typescript
 import { Bot, ReceiverMode } from 'qq-official-bot'
 
+// 默认：直连官方网关
 const bot = new Bot({
     appid: 'your_app_id',
     secret: 'your_app_secret',
     intents: ['GUILD_MESSAGES'],
     mode: ReceiverMode.WEBSOCKET,
-    accessTokenUrl: 'https://bots.qq.com/app/getAppAccessToken',
-    gatewayUrl: 'https://api.sgroup.qq.com/gateway/bot',
+})
+
+// 自定义：通过代理或自建服务转发
+const proxiedBot = new Bot({
+    appid: 'your_app_id',
+    secret: 'your_app_secret',
+    intents: ['GUILD_MESSAGES'],
+    mode: ReceiverMode.WEBSOCKET,
+    accessTokenUrl: 'https://your-proxy.example.com/app/getAppAccessToken',
+    gatewayUrl: 'https://your-proxy.example.com/gateway/bot',
 })
 ```
 
@@ -78,6 +87,29 @@ const bot = new Bot({
 | `heartbeatInterval` | `number` | ❌ | 心跳间隔(ms) | `45000` |
 | `maxRetries` | `number` | ❌ | 连接重试次数 | `10` |
 | `reconnectDelay` | `number` | ❌ | 重连延迟(ms) | `1000` |
+
+##### 自定义网关地址说明
+
+WebSocket 连接分三步，其中前两步可通过配置覆盖默认地址：
+
+| 步骤 | 默认行为 | 自定义配置 |
+|------|----------|------------|
+| 1. 获取 token | `POST https://bots.qq.com/app/getAppAccessToken` | `accessTokenUrl` |
+| 2. 获取 gateway | `GET /gateway/bot`（相对 API 根地址） | `gatewayUrl` |
+| 3. 建立 WebSocket | 使用 gateway 响应中的 `url` 字段 | 不可配置，由 gateway 返回 |
+
+适用场景：
+
+- 需要通过反向代理、内网穿透（如 ngrok）访问官方网关
+- 企业内网部署了转发官方 API 的中间层
+- 开发调试时需要将流量路由到本地 mock 服务
+
+注意事项：
+
+- `accessTokenUrl` 必须是**完整 URL**；请求体仍为 `{ appId, clientSecret }`
+- `gatewayUrl` 支持完整 URL，也支持相对路径（如 `/gateway/bot`）
+- 代理服务应返回与[官方 gateway 接口](https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/interface-framework/reference.html)兼容的响应格式，尤其是 `url` 字段
+- 两个配置项可单独使用，例如只自定义 token 地址、gateway 仍走默认路径
 
 #### Webhook 模式
 
@@ -199,13 +231,23 @@ const prodBot = new Bot({
 QQ_BOT_APPID=your_app_id
 QQ_BOT_SECRET=your_app_secret
 QQ_BOT_SANDBOX=false
+# 可选：WebSocket 模式自定义网关（留空则使用官方默认地址）
+QQ_BOT_ACCESS_TOKEN_URL=https://your-proxy.example.com/app/getAppAccessToken
+QQ_BOT_GATEWAY_URL=https://your-proxy.example.com/gateway/bot
 
 // 配置文件
 const bot = new Bot({
     appid: process.env.QQ_BOT_APPID!,
     secret: process.env.QQ_BOT_SECRET!,
     sandbox: process.env.QQ_BOT_SANDBOX === 'true',
-    // ...其他配置
+    mode: ReceiverMode.WEBSOCKET,
+    intents: ['GUILD_MESSAGES'],
+    ...(process.env.QQ_BOT_ACCESS_TOKEN_URL && {
+        accessTokenUrl: process.env.QQ_BOT_ACCESS_TOKEN_URL,
+    }),
+    ...(process.env.QQ_BOT_GATEWAY_URL && {
+        gatewayUrl: process.env.QQ_BOT_GATEWAY_URL,
+    }),
 })
 ```
 

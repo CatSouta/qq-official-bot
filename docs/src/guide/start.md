@@ -77,6 +77,34 @@ bot.on('message', async (event) => {
 bot.start()
 ```
 
+#### 自定义网关地址
+
+WebSocket 模式下，SDK 默认请求官方接口获取 token 和 gateway 信息。若需通过代理、内网穿透或自建服务转发，可配置以下选项：
+
+| 配置项 | 说明 | 默认值 |
+|--------|------|--------|
+| `accessTokenUrl` | 获取 access token 的**完整 URL** | `https://bots.qq.com/app/getAppAccessToken` |
+| `gatewayUrl` | 获取网关信息的 **URL 或路径**；响应中的 `url` 为 WebSocket 连接地址 | `/gateway/bot` |
+
+```typescript
+const bot = new Bot({
+    appid: process.env.QQ_BOT_APPID!,
+    secret: process.env.QQ_BOT_SECRET!,
+    intents: ['GUILD_MESSAGES'],
+    mode: ReceiverMode.WEBSOCKET,
+    accessTokenUrl: process.env.QQ_BOT_ACCESS_TOKEN_URL,
+    gatewayUrl: process.env.QQ_BOT_GATEWAY_URL,
+})
+```
+
+连接流程：
+
+1. 向 `accessTokenUrl` 发送 `{ appId, clientSecret }` 换取 token
+2. 携带 `Authorization: QQBot <token>` 请求 `gatewayUrl`
+3. 使用 gateway 响应中的 `url` 建立 WebSocket 连接
+
+> `gatewayUrl` 为相对路径时，会拼接到 `sandbox` / 生产环境的 API 根地址（`api.sgroup.qq.com` 或 `sandbox.api.sgroup.qq.com`）。
+
 ### Webhook 连接模式
 
 ```typescript

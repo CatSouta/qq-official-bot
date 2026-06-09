@@ -16,7 +16,7 @@ features:
   - title: 🏗️ 模块化架构
     details: 采用服务化设计，职责分离，易于维护和扩展。每个功能模块独立开发，降低耦合度
   - title: 🔌 多种连接方式
-    details: 支持 WebSocket、Webhook 和中间件模式，满足不同场景的开发需求
+    details: 支持 WebSocket、Webhook 和中间件模式；WebSocket 可自定义 accessToken 与 gateway 地址，便于代理接入
   - title: 📝 完整类型支持
     details: 使用 TypeScript 开发，提供完整的类型定义，开发体验更佳
   - title: 🚀 简单易用

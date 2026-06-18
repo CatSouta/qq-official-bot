@@ -4,7 +4,7 @@
     "description": "qq机器人开发SDK",
     "main": "lib/index.js",
     "engines": {
-        "node": ">=16"
+        "node": ">=20.12"
     },
     "scripts": {
         "start": "node .",

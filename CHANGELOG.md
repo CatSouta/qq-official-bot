@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.3](https://github.com/zhinjs/qq-official-bot/compare/v1.2.2...v1.2.3) (2026-06-18)
+
+
+### Bug Fixes
+
+* add GROUP_MEMBER intent and implement group member change event handling ([ecbdcc1](https://github.com/zhinjs/qq-official-bot/commit/ecbdcc189ef02a4fe31a2a9dda6c608f8724f986))
+
 ## [1.2.2](https://github.com/zhinjs/qq-official-bot/compare/v1.2.1...v1.2.2) (2026-06-09)
 
 

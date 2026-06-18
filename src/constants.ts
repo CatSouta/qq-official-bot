@@ -88,6 +88,7 @@ export enum Intends {
     GUILD_MESSAGES = 1 << 9, // 私域频道消息事件
     GUILD_MESSAGE_REACTIONS = 1 << 10, // 频道消息表态事件
     DIRECT_MESSAGE = 1 << 12, // 频道私信事件
+    GROUP_MEMBER = 1 << 24, // 群成员变更事件
     GROUP_AND_C2C_EVENT = 1 << 25, // 私聊与群聊消息事件
     INTERACTION = 1 << 26, // 互动事件
     MESSAGE_AUDIT = 1 << 27, // 消息审核事件
@@ -107,6 +108,8 @@ export type Intent =
     | 'GUILD_MESSAGE_REACTIONS'
     // 频道私信事件
     | 'DIRECT_MESSAGE'
+    // 群成员变更事件
+    | 'GROUP_MEMBER'
     // 私聊与群聊消息事件
     | 'GROUP_AND_C2C_EVENT'
     // 互动事件

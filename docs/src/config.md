@@ -152,6 +152,7 @@ const bot = new Bot({
 | `PUBLIC_GUILD_MESSAGES` | 公域频道消息事件 | 公域机器人 |
 | `GUILD_MESSAGE_REACTIONS` | 频道消息表态事件 | 所有机器人 |
 | `DIRECT_MESSAGE` | 频道私信事件 | 所有机器人 |
+| `GROUP_MEMBER` | 群成员变更事件（`GROUP_MEMBER_ADD` / `GROUP_MEMBER_REMOVE`） | 有群聊权限的机器人 |
 | `GROUP_AND_C2C_EVENT` | 群聊@与私聊消息事件 | 有群或私聊权限的机器人 |
 | `MESSAGE_AUDIT` | 消息审核事件 | 所有机器人 |
 | `FORUMS_EVENTS` | 论坛事件 | 私域机器人 |
@@ -180,6 +181,7 @@ const publicBotIntents = [
 // 群机器人配置
 const groupBotIntents = [
     'GROUP_AND_C2C_EVENT',  // 群@消息与私聊消息
+    'GROUP_MEMBER',         // 群成员进退
 ]
 ```
 

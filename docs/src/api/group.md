@@ -223,6 +223,36 @@ bot.on('message.group', async (event) => {
 })
 ```
 
+### 监听群成员变更事件
+
+当群内有成员加入或退出时，会触发 `notice.group.member` 事件（对应官方 `GROUP_MEMBER_ADD` / `GROUP_MEMBER_REMOVE`）。需在 `intents` 中订阅 `GROUP_MEMBER`（`1 << 24`）。
+
+```typescript
+const bot = new Bot({
+    intents: ['GROUP_AND_C2C_EVENT', 'GROUP_MEMBER'],
+    // ...
+})
+```
+
+```typescript
+// 成员加入 / 退出（汇总）
+bot.on('notice.group.member', (event) => {
+    console.log(`群 ${event.group_id} 成员 ${event.user_id} ${event.actionText}`)
+})
+
+// 仅成员加入
+bot.on('notice.group.member.increase', (event) => {
+    console.log(`新成员 ${event.user_id} 加入群 ${event.group_id}`)
+})
+
+// 仅成员退出
+bot.on('notice.group.member.decrease', (event) => {
+    console.log(`成员 ${event.user_id} 退出群 ${event.group_id}`)
+})
+```
+
+> 注意：`notice.group.increase` / `notice.group.decrease` 表示**机器人被加入/移出群聊**（`GROUP_ADD_ROBOT` / `GROUP_DEL_ROBOT`），与群成员进退事件不同。
+
 ### 群消息过滤
 
 ```typescript

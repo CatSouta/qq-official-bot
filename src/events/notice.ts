@@ -216,6 +216,53 @@ export namespace GroupChangeNoticeEvent {
     }
 }
 
+export class GroupMemberChangeNoticeEvent extends NoticeEvent {
+    group_id: string
+    user_id: string
+    operator_id?: string
+    time: number
+    notice_type: 'group' = 'group'
+    sub_type: 'member.increase' | 'member.decrease'
+
+    get actionText() {
+        return this.sub_type === 'member.increase' ? '加入' : '退出'
+    }
+
+    constructor(bot: Bot, sub_type: 'member.increase' | 'member.decrease', payload: Dict) {
+        super(bot, payload);
+        this.sub_type = sub_type
+        this.group_id = payload.group_openid ?? payload.group_id
+        this.user_id = payload.member_openid ?? payload.user_openid ?? payload.user_id
+        this.operator_id = payload.op_member_openid ?? payload.operator_id
+        this.time = parseNoticeTimestamp(payload.timestamp)
+        bot.logger.info(`群[${this.group_id}]成员(${this.user_id})${this.actionText}`)
+    }
+}
+
+export namespace GroupMemberChangeNoticeEvent {
+    export const parse: EventParser = function (this: Bot, event, payload) {
+        switch (event) {
+            case "notice.group.member.increase":
+                return new GroupMemberChangeNoticeEvent(this, 'member.increase', payload)
+            case "notice.group.member.decrease":
+                return new GroupMemberChangeNoticeEvent(this, 'member.decrease', payload)
+        }
+    }
+}
+
+function parseNoticeTimestamp(timestamp: unknown): number {
+    if (typeof timestamp === 'number') {
+        return timestamp > 1e12 ? Math.floor(timestamp / 1000) : timestamp
+    }
+    if (typeof timestamp === 'string') {
+        const parsed = new Date(timestamp).getTime()
+        if (!Number.isNaN(parsed)) {
+            return Math.floor(parsed / 1000)
+        }
+    }
+    return Math.floor(Date.now() / 1000)
+}
+
 export class GuildChangeNoticeEvent extends NoticeEvent {
     guild_id: string
     guild_name: string

@@ -10,6 +10,7 @@ import {
     FriendReceiveNoticeEvent,
     GroupActionNoticeEvent,
     GroupChangeNoticeEvent,
+    GroupMemberChangeNoticeEvent,
     GroupReceiveNoticeEvent,
     GuildActionNoticeEvent,
     GuildChangeNoticeEvent,
@@ -44,6 +45,8 @@ export enum QQEvent {
     GUILD_MEMBER_REMOVE = 'notice.guild.member.decrease',
     GROUP_ADD_ROBOT = 'notice.group.increase',
     GROUP_DEL_ROBOT = 'notice.group.decrease',
+    GROUP_MEMBER_ADD = 'notice.group.member.increase',
+    GROUP_MEMBER_REMOVE = 'notice.group.member.decrease',
     GROUP_MSG_REJECT = 'notice.group.receive_close',
     GROUP_MSG_RECEIVE = 'notice.group.receive_open',
     FRIEND_ADD = 'notice.friend.increase',
@@ -90,6 +93,8 @@ EventParserMap.set(QQEvent.C2C_MSG_REJECT, FriendReceiveNoticeEvent.parse)
 EventParserMap.set(QQEvent.C2C_MSG_RECEIVE, FriendReceiveNoticeEvent.parse)
 EventParserMap.set(QQEvent.GROUP_ADD_ROBOT, GroupChangeNoticeEvent.parse)
 EventParserMap.set(QQEvent.GROUP_DEL_ROBOT, GroupChangeNoticeEvent.parse)
+EventParserMap.set(QQEvent.GROUP_MEMBER_ADD, GroupMemberChangeNoticeEvent.parse)
+EventParserMap.set(QQEvent.GROUP_MEMBER_REMOVE, GroupMemberChangeNoticeEvent.parse)
 EventParserMap.set(QQEvent.GROUP_MSG_RECEIVE, GroupReceiveNoticeEvent.parse)
 EventParserMap.set(QQEvent.GROUP_MSG_REJECT, GroupReceiveNoticeEvent.parse)
 EventParserMap.set(QQEvent.GUILD_CREATE, GuildChangeNoticeEvent.parse)
@@ -151,11 +156,17 @@ export interface EventMap {
     'notice.reaction.add'(e:MessageReactionNoticeEvent):void
     'notice.reaction.remove'(e: MessageReactionNoticeEvent): void
 
-    'notice.group'(e: ActionNoticeEvent | GroupChangeNoticeEvent | GroupReceiveNoticeEvent): void
+    'notice.group'(e: ActionNoticeEvent | GroupChangeNoticeEvent | GroupMemberChangeNoticeEvent | GroupReceiveNoticeEvent): void
 
     'notice.group.increase'(e: GroupChangeNoticeEvent): void
 
     'notice.group.decrease'(e: GroupChangeNoticeEvent): void
+
+    'notice.group.member'(e: GroupMemberChangeNoticeEvent): void
+
+    'notice.group.member.increase'(e: GroupMemberChangeNoticeEvent): void
+
+    'notice.group.member.decrease'(e: GroupMemberChangeNoticeEvent): void
 
     'notice.group.receive_close'(e: GroupReceiveNoticeEvent): void
 

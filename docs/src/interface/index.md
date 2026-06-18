@@ -53,6 +53,8 @@ type Intent =
     | 'GUILD_MESSAGE_REACTIONS'
     // 频道私信事件
     | 'DIRECT_MESSAGE'
+    // 群成员变更事件
+    | 'GROUP_MEMBER'
     // 私聊与群聊消息事件
     | 'GROUP_AND_C2C_EVENT'
     // 互动事件

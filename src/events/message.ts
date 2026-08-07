@@ -141,7 +141,7 @@ export namespace MessageEvent {
             sender: {
                 user_id: payload.author?.id,
                 user_name: payload.author?.username,
-                permissions: ['normal'].concat(permissions),
+                permissions: [payload.author?.member_role || 'normal'].concat(permissions),
                 user_openid: payload.author?.user_openid || payload.author?.member_openid
             },
             timestamp: new Date(payload.timestamp).getTime() / 1000,

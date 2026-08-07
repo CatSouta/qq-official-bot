@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.4](https://github.com/zhinjs/qq-official-bot/compare/v1.2.3...v1.2.4) (2026-08-07)
+
+
+### Bug Fixes
+
+* distinguish GROUP_MESSAGE_CREATE and GROUP_AT_MESSAGE_CREATE events ([43362f4](https://github.com/zhinjs/qq-official-bot/commit/43362f46de9828f762b2ab7e6e80b09df6a60ac4))
+* distinguish GROUP_MESSAGE_CREATE and GROUP_AT_MESSAGE_CREATE events ([084745b](https://github.com/zhinjs/qq-official-bot/commit/084745bdab584b3683f73baacc3a38546f5a7214))
+* 修复群相关事件内无法获取发送者的权限(群成员(member)/群管理(admin)/群主(owner))的问题 ([c4a5445](https://github.com/zhinjs/qq-official-bot/commit/c4a54454bbcdc9079472eeba5799cf36be73267b))
+* 修复群相关事件内无法获取发送者的权限(群成员(member)/群管理(admin)/群主(owner))的问题 ([2fcf3a9](https://github.com/zhinjs/qq-official-bot/commit/2fcf3a9780cf2696d4c55a9081f2fe03c445abe2))
+
 ## [1.2.3](https://github.com/zhinjs/qq-official-bot/compare/v1.2.2...v1.2.3) (2026-06-18)
 
 

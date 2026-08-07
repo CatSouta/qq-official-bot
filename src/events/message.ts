@@ -153,6 +153,7 @@ export namespace MessageEvent {
                 this.logger.info(`recv from User(${payload.user_id}): ${payload.raw_message}`)
                 break;
             case 'message.group':
+            case 'message.group.at':
                 messageEvent = new GroupMessageEvent(this, payload)
                 this.logger.info(`recv from Group(${payload.group_id}): ${payload.raw_message}`)
                 break;

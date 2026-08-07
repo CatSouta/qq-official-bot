@@ -58,7 +58,7 @@ export enum QQEvent {
     MESSAGE_AUDIT_REJECT = 'message.audit.reject',
     C2C_MESSAGE_CREATE = 'message.private.friend',
     GROUP_MESSAGE_CREATE = 'message.group',
-    GROUP_AT_MESSAGE_CREATE = 'message.group',
+    GROUP_AT_MESSAGE_CREATE = 'message.group.at',
     FORUM_THREAD_CREATE = 'notice.forum.thread.create',
     FORUM_THREAD_UPDATE = 'notice.forum.thread.update',
     FORUM_THREAD_DELETE = 'notice.forum.thread.delete',
@@ -132,6 +132,7 @@ export interface EventMap {
     'message.audit.pass'(e:MessageAuditEvent):void
     'message.audit.reject'(e:MessageAuditEvent):void
     'message.group'(e: GroupMessageEvent): void
+    'message.group.at'(e: GroupMessageEvent): void
 
     'message.private'(e: PrivateMessageEvent): void
     'message.private.friend'(e: PrivateMessageEvent): void

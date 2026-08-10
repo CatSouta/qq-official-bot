@@ -216,12 +216,12 @@ bot.on('message.group', async (event) => {
 })
 
 // 监听群消息中的@机器人
-bot.on('message.group', async (event) => {
-    if (event.raw_message.includes(`@${bot.self_id}`)) {
-        await event.reply('有人@我了!')
-    }
+bot.on('message.group.at', async (event) => {
+    await event.reply('有人@我了!')
 })
 ```
+
+> 注意：事件名采用前缀传播，监听 `message.group` 也会收到 `message.group.at` 事件；如需忽略 @ 机器人消息，请在 `message.group` 回调中自行过滤 `event.sub_type === 'at'`。
 
 ### 监听群成员变更事件
 

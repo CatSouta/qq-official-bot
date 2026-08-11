@@ -140,7 +140,7 @@ bot.on('message.private', async (event) => {
 })
 
 // 主动发送消息
-await bot.sendMessage(channel_id, 'Hello from bot!')
+await bot.sendGuildMessage(channel_id, 'Hello from bot!')
 await bot.sendGroupMessage(group_id, 'Hello, Group!')
 await bot.sendPrivateMessage(user_id, 'Hello, User!')
 ```
@@ -148,21 +148,21 @@ await bot.sendPrivateMessage(user_id, 'Hello, User!')
 ### 使用服务模块
 
 ```typescript
-// 使用频道服务
-const guilds = await bot.guildService.getGuilds()
-const guildInfo = await bot.guildService.getGuild(guild_id)
+// 频道服务
+const guilds = await bot.guildService.getList()
+const guildInfo = await bot.guildService.getInfo(guild_id)
 
-// 使用消息服务
-await bot.messageService.sendMessage(channel_id, 'Hello!')
-await bot.messageService.recallMessage(channel_id, message_id)
+// 消息服务
+await bot.messageService.sendGuildMessage(channel_id, 'Hello!')
+await bot.messageService.recallGuildMessage(channel_id, message_id)
 
-// 使用成员管理服务
-await bot.memberService.muteGuildMember(guild_id, user_id, '600', '0')
-await bot.memberService.kickGuildMember(guild_id, user_id)
+// 成员管理（Bot 层也提供同名便捷方法）
+await bot.muteGuildMember(guild_id, user_id, 600)
+await bot.kickGuildMember(guild_id, user_id)
 
-// 使用权限管理服务
-const permissions = await bot.permissionService.getChannelUserPermissions(channel_id, user_id)
-await bot.permissionService.updateChannelUserPermissions(channel_id, user_id, 'add_permission', 'remove_permission')
+// 权限管理
+const permissions = await bot.getChannelMemberPermission(channel_id, user_id)
+await bot.updateChannelMemberPermission(channel_id, user_id, { add: 'permission', remove: 'permission' })
 ```
 ## 🔧 服务模块架构
 
@@ -172,23 +172,23 @@ await bot.permissionService.updateChannelUserPermissions(channel_id, user_id, 'a
 
 | 服务模块 | 功能描述 | 主要方法 |
 |---------|---------|----------|
-| **GuildService** | 频道管理 | `getGuilds()`, `getGuild()`, `getGuildMembers()` |
-| **ChannelService** | 子频道管理 | `getChannel()`, `createChannel()`, `updateChannel()` |
-| **MessageService** | 消息处理 | `sendMessage()`, `recallMessage()`, `sendPrivateMessage()` |
-| **MemberService** | 成员管理 | `muteGuildMember()`, `kickGuildMember()`, `muteGuildMembers()` |
-| **PermissionService** | 权限管理 | `getChannelUserPermissions()`, `updateChannelUserPermissions()` |
-| **ReactionService** | 表态管理 | `addGuildMessageReaction()`, `removeGuildMessageReaction()` |
-| **ScheduleService** | 日程管理 | `getChannelSchedules()`, `createSchedule()`, `updateSchedule()` |
-| **ThreadService** | 帖子管理 | `getThreads()`, `createThread()`, `deleteThread()` |
-| **AudioService** | 音频控制 | `controlMemberMic()`, `kickChannelMember()` |
-| **BotService** | 机器人信息 | `getSelfInfo()`, `getSelfGuilds()`, `postActionMessage()` |
+| **GuildService** | 频道管理 | `getList()`, `getInfo()`, `getRoles()` |
+| **ChannelService** | 子频道管理 | `getList()`, `getInfo()`, `create()`, `update()` |
+| **MessageService** | 消息处理 | `sendGuildMessage()`, `recallGuildMessage()`, `sendGroupMessage()`, `sendPrivateMessage()` |
+| **MemberService** | 成员管理 | `getGuildMemberList()`, `muteMembers()`, `kickMember()` |
+| **PermissionService** | 权限管理 | `getChannelMemberPermission()`, `updateChannelMemberPermission()` |
+| **ReactionService** | 表态管理 | `addGuildMessageReaction()`, `deleteGuildMessageReaction()` |
+| **ScheduleService** | 日程管理 | `getChannelSchedules()`, `createChannelSchedule()`, `updateChannelSchedule()` |
+| **ThreadService** | 帖子管理 | `getChannelThreads()`, `publishThread()`, `deleteThread()` |
+| **AudioService** | 音频控制 | `controlChannelAudio()`, `setOnlineMic()`, `setOfflineMic()` |
+| **BotService** | 机器人信息 | `getSelfInfo()`, `replyAction()` |
 
 ### 服务特性
 
-- ✅ **统一响应格式** - 所有服务方法返回 `ApiResponse<T>` 格式
-- ✅ **错误处理** - 内置错误捕获和处理机制
+- ✅ **Bot 便捷方法** - `Bot` 类封装了常用 API，与服务层方法对应
+- ✅ **错误处理** - 内置请求拦截与错误转换
 - ✅ **类型安全** - 完整的 TypeScript 类型定义
-- ✅ **向后兼容** - Bot 类保持原有 API 接口不变
+- ✅ **服务分层** - 也可直接调用 `bot.*Service` 访问底层能力
 
 ## 🎯 API 参考
 
@@ -196,35 +196,37 @@ await bot.permissionService.updateChannelUserPermissions(channel_id, user_id, 'a
 
 | 功能 | 方法 | 参数 | 返回值 |
 |-----|------|------|--------|
-| 获取机器人信息 | `getSelfInfo()` | - | `User` |
-| 获取频道列表 | `getGuilds()` | - | `Guild[]` |
-| 获取频道信息 | `getGuild(guild_id)` | `guild_id: string` | `Guild` |
-| 获取子频道列表 | `getGuildChannels(guild_id)` | `guild_id: string` | `Channel[]` |
-| 获取子频道信息 | `getChannel(channel_id)` | `channel_id: string` | `Channel` |
+| 获取机器人信息 | `getSelfInfo()` | - | `Bot.Info` |
+| 获取频道列表 | `getGuildList()` | - | `Guild.ApiInfo[]` |
+| 获取频道信息 | `getGuildInfo(guild_id)` | `guild_id: string` | `Guild.ApiInfo` |
+| 获取子频道列表 | `getChannelList(guild_id)` | `guild_id: string` | `Channel.ApiInfo[]` |
+| 获取子频道信息 | `getChannelInfo(channel_id)` | `channel_id: string` | `Channel.ApiInfo` |
 
 ### 消息 API
 
 | 功能 | 方法 | 参数 | 返回值 |
 |-----|------|------|--------|
-| 发送频道消息 | `sendMessage(channel_id, content)` | `channel_id: string, content: Sendable` | `any` |
-| 发送私聊消息 | `sendPrivateMessage(user_id, content)` | `user_id: string, content: Sendable` | `any` |
-| 发送群消息 | `sendGroupMessage(group_id, content)` | `group_id: string, content: Sendable` | `any` |
-| 撤回消息 | `recallMessage(channel_id, message_id)` | `channel_id: string, message_id: string` | `any` |
+| 发送频道消息 | `sendGuildMessage(channel_id, content)` | `channel_id: string, content: Sendable` | `SendResult` |
+| 发送私聊消息 | `sendPrivateMessage(user_id, content)` | `user_id: string, content: Sendable` | `SendResult` |
+| 发送群消息 | `sendGroupMessage(group_id, content)` | `group_id: string, content: Sendable` | `SendResult` |
+| 撤回频道消息 | `recallGuildMessage(channel_id, message_id)` | `channel_id: string, message_id: string` | `boolean` |
+| 撤回群消息 | `recallGroupMessage(group_id, message_id)` | `group_id: string, message_id: string` | `boolean` |
+| 撤回私聊消息 | `recallPrivateMessage(user_id, message_id)` | `user_id: string, message_id: string` | `boolean` |
 
 ### 成员管理 API
 
 | 功能 | 方法 | 参数 | 返回值 |
 |-----|------|------|--------|
-| 获取频道成员 | `getGuildMembers(guild_id)` | `guild_id: string` | `GuildMember[]` |
-| 禁言成员 | `muteGuildMember(guild_id, user_id, seconds)` | `guild_id: string, user_id: string, seconds: string` | `any` |
-| 踢出成员 | `kickGuildMember(guild_id, user_id)` | `guild_id: string, user_id: string` | `any` |
+| 获取频道成员 | `getGuildMemberList(guild_id)` | `guild_id: string` | `GuildMember.ApiInfo[]` |
+| 禁言成员 | `muteGuildMember(guild_id, user_id, seconds)` | `guild_id: string, user_id: string, seconds: number` | `boolean` |
+| 踢出成员 | `kickGuildMember(guild_id, user_id)` | `guild_id: string, user_id: string` | `boolean` |
 
 ### 权限管理 API
 
 | 功能 | 方法 | 参数 | 返回值 |
 |-----|------|------|--------|
-| 获取用户权限 | `getChannelUserPermissions(channel_id, user_id)` | `channel_id: string, user_id: string` | `ChannelMemberPermissions` |
-| 更新用户权限 | `updateChannelUserPermissions(channel_id, user_id, add?, remove?)` | `channel_id: string, user_id: string, add?: string, remove?: string` | `any` |
+| 获取成员权限 | `getChannelMemberPermission(channel_id, user_id)` | `channel_id: string, user_id: string` | `ChannelMemberPermissions` |
+| 更新成员权限 | `updateChannelMemberPermission(channel_id, user_id, permission)` | `channel_id: string, user_id: string, permission: UpdatePermissionParams` | `boolean` |
 
 ## 🔧 配置选项
 
@@ -292,29 +294,29 @@ type Intent =
 ### 基础消息
 
 ```typescript
-// 文本消息
-await bot.sendMessage(channel_id, 'Hello, World!')
+import { segment } from 'qq-official-bot'
 
-// 富文本消息
-await bot.sendMessage(channel_id, [
-    '这是一条包含 ',
-    { type: 'mention', user_id: 'user123' },
-    ' 的消息'
+// 文本消息
+await bot.sendGuildMessage(channel_id, 'Hello, World!')
+
+// 组合消息段
+await bot.sendGuildMessage(channel_id, [
+    segment.text('这是一条包含 '),
+    segment.at(user_id),
+    segment.text(' 的消息'),
 ])
 ```
 
-### 高级消息
+### 富媒体与 Markdown
 
 ```typescript
-import { MessageBuilder } from 'qq-official-bot'
+import { segment } from 'qq-official-bot'
 
-// 使用消息构建器
-const message = bot.messageBuilder
-    .text('Hello ')
-    .mention(user_id)
-    .text('!')
-    .build()
-
-await bot.sendMessage(channel_id, message)
+await bot.sendGroupMessage(group_id, [
+    segment.markdown('## 通知\n**重要内容**'),
+    segment.image('https://example.com/image.png'),
+])
 ```
+
+> `messageBuilder` 为内部构建器，由 `MessageService` 在发送时自动使用。业务侧推荐通过 `segment` 工厂函数组装 `Sendable` 消息。
 

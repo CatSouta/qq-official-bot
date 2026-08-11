@@ -236,7 +236,7 @@ export class Connection extends EventEmitter {
       this.state.sessionID = record.sessionID;
     }
     if (record.seq !== undefined) {
-      this.state.seq = record.seq;
+      this.state.seq = record.seq % 4294967296;
     }
 
     this.bot.logger.debug("[CONNECTION] 会话记录已更新", {

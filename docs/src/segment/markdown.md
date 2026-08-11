@@ -15,6 +15,7 @@ interface MarkdownContentElement {
   content: string
   custom_template_id?: never
   params?: never
+  force_verify_image_resource?: boolean
 }
 
 // 模板 Markdown 内容
@@ -23,6 +24,7 @@ interface MarkdownTemplateElement {
   custom_template_id: string
   content?: never
   params: Array<{key: string, values: string}>
+  force_verify_image_resource?: boolean
 }
 
 type MarkdownElement = MarkdownContentElement | MarkdownTemplateElement
@@ -46,6 +48,22 @@ type MarkdownElement = MarkdownContentElement | MarkdownTemplateElement
 | params | Array | ✅ | 模板参数列表，包含键值对 |
 
 > **注意**: 两种模式是互斥的，不能同时使用 `content` 和 `custom_template_id`。
+
+### 图片转存强校验
+
+群聊和单聊 Markdown 可开启 `force_verify_image_resource`。开启后，图片转存失败会中断消息发送并返回错误；默认关闭。
+
+```typescript
+await bot.sendGroupMessage(group_openid, segment.markdown(
+  '## 海报\n![活动海报](https://example.com/poster.png)',
+  { force_verify_image_resource: true },
+))
+
+// 模板模式的选项使用第三个参数
+segment.markdown(template_id, params, {
+  force_verify_image_resource: true,
+})
+```
 
 ## 支持的 Markdown 语法
 

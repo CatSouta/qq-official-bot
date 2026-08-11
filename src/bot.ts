@@ -42,7 +42,8 @@ import {
     ScheduleService,
     ThreadService,
     AudioService,
-    BotService
+    BotService,
+    GroupService
 } from "@/services";
 
 
@@ -63,6 +64,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
     public readonly threadService: ThreadService = new ThreadService(this.request);
     public readonly audioService: AudioService = new AudioService(this.request);
     public readonly botService: BotService = new BotService(this.request);
+    public readonly groupService: GroupService = new GroupService(this.request);
 
     constructor(config: Bot.Config<T, M>) {
         super(config)
@@ -503,6 +505,54 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      */
     async getGroupMemberInfo(group_id: string, member_id: string) {
         throw UnsupportedMethodError
+    }
+    /** 获取群基本信息（白名单能力） */
+    async getGroupInfo(...args: Parameters<GroupService['getInfo']>) {
+        return this.groupService.getInfo(...args)
+    }
+    /** 获取机器人在群内的状态（白名单能力） */
+    async getGroupBotState(...args: Parameters<GroupService['getBotState']>) {
+        return this.groupService.getBotState(...args)
+    }
+    /** 拉取入群申请列表 */
+    async getGroupJoinRequests(...args: Parameters<GroupService['getJoinRequests']>) {
+        return this.groupService.getJoinRequests(...args)
+    }
+    /** 审批入群申请 */
+    async approveGroupJoinRequest(...args: Parameters<GroupService['approveJoinRequest']>) {
+        return this.groupService.approveJoinRequest(...args)
+    }
+    /** 查询群禁言状态 */
+    async getGroupMuteSetting(...args: Parameters<GroupService['getMuteSetting']>) {
+        return this.groupService.getMuteSetting(...args)
+    }
+    /** 设置或解除群成员禁言 */
+    async setGroupMemberMute(...args: Parameters<GroupService['setMemberMute']>) {
+        return this.groupService.setMemberMute(...args)
+    }
+    /** 查询入群自动审批策略 */
+    async getGroupJoinApprovalStrategies(...args: Parameters<GroupService['getJoinApprovalStrategies']>) {
+        return this.groupService.getJoinApprovalStrategies(...args)
+    }
+    /** 创建入群自动审批策略 */
+    async createGroupJoinApprovalStrategy(...args: Parameters<GroupService['createJoinApprovalStrategy']>) {
+        return this.groupService.createJoinApprovalStrategy(...args)
+    }
+    /** 修改入群自动审批策略 */
+    async updateGroupJoinApprovalStrategy(...args: Parameters<GroupService['updateJoinApprovalStrategy']>) {
+        return this.groupService.updateJoinApprovalStrategy(...args)
+    }
+    /** 删除入群自动审批策略 */
+    async deleteGroupJoinApprovalStrategy(...args: Parameters<GroupService['deleteJoinApprovalStrategy']>) {
+        return this.groupService.deleteJoinApprovalStrategy(...args)
+    }
+    /** 立即执行一次入群自动审批策略 */
+    async executeGroupJoinApprovalStrategy(...args: Parameters<GroupService['executeJoinApprovalStrategy']>) {
+        return this.groupService.executeJoinApprovalStrategy(...args)
+    }
+    /** 增删入群自动审批策略的 QQ 号白名单 */
+    async updateGroupJoinApprovalWhitelist(...args: Parameters<GroupService['updateJoinApprovalWhitelist']>) {
+        return this.groupService.updateJoinApprovalWhitelist(...args)
     }
     /**
      * 获取好友列表

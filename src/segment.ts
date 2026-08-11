@@ -19,7 +19,8 @@ import type {
     LinkElem,
     ReplyElem,
     KeyboardElem,
-    Quotable
+    Quotable,
+    MarkdownOptions
 } from './elements'
 import type { Dict } from './types'
 
@@ -129,16 +130,18 @@ export const segment = {
      */
     markdown(
         contentOrTemplateId: string,
-        params?: { key: string, values: string }[]
+        paramsOrOptions?: { key: string, values: string }[] | MarkdownOptions,
+        options: MarkdownOptions = {}
     ): MDElem {
-        if (params) {
+        if (Array.isArray(paramsOrOptions)) {
             // 使用自定义模板
             return {
                 type: 'markdown',
                 data: {
                     content: null as never,
                     custom_template_id: contentOrTemplateId,
-                    params
+                    params: paramsOrOptions,
+                    ...options
                 }
             }
         } else {
@@ -148,7 +151,8 @@ export const segment = {
                 data: {
                     content: contentOrTemplateId,
                     custom_template_id: null as never,
-                    params: null as never
+                    params: null as never,
+                    ...paramsOrOptions
                 }
             }
         }

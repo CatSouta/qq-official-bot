@@ -73,50 +73,110 @@ if (result.success) {
 const success = await bot.recallGroupMessage(group_id, message_id)
 ```
 
-## 👥 群成员管理
+## 👥 群聊管理
 
-### 获取群成员列表
+最新群管理接口集中在 `bot.groupService`，同时提供 `bot.getGroupInfo()` 等快捷方法。
 
-获取指定群的成员列表。
+::: warning 权限与频控
+群基本信息、机器人群内状态目前仅对白名单机器人开放（30 QPM）。入群审批与禁言要求机器人是群管理员；详细频控以 QQ 官方文档为准。
+:::
 
-**方法名**: `bot.getGroupMemberList(groupId)`
-
-**参数**:
-| 参数名 | 类型 | 必填 | 描述 |
-|-------|------|------|------|
-| `groupId` | `string` | ✅ | 群 ID |
+### 群信息与机器人状态
 
 ```typescript
-// 注意：此方法在当前实现中可能不支持，请查看具体错误信息
-try {
-    const members = await bot.getGroupMemberList(group_id)
-    console.log('群成员列表:', members)
-} catch (error) {
-    console.log('获取群成员列表失败:', error.message)
-}
+const info = await bot.getGroupInfo(group_openid)
+console.log(info.group_name, info.group_member_num, info.group_tags)
+
+const state = await bot.getGroupBotState(group_openid)
+console.log(state.member_role, state.recv_msg_setting, state.allow_proactive_msg)
 ```
 
-### 获取群成员信息
-
-获取指定群成员的详细信息。
-
-**方法名**: `bot.getGroupMemberInfo(groupId, memberId)`
-
-**参数**:
-| 参数名 | 类型 | 必填 | 描述 |
-|-------|------|------|------|
-| `groupId` | `string` | ✅ | 群 ID |
-| `memberId` | `string` | ✅ | 成员 ID |
+### 入群申请拉取与审批
 
 ```typescript
-// 注意：此方法在当前实现中可能不支持，请查看具体错误信息
-try {
-    const memberInfo = await bot.getGroupMemberInfo(group_id, member_id)
-    console.log('群成员信息:', memberInfo)
-} catch (error) {
-    console.log('获取群成员信息失败:', error.message)
-}
+const page = await bot.getGroupJoinRequests(group_openid, {
+    cursor: '',
+    limit: 100,
+})
+
+const request = page.list[0]
+await bot.approveGroupJoinRequest(group_openid, request.member_openid, {
+    op: 'approve',
+    join_request_id: request.join_request_id,
+})
+
+// 拒绝并加入群黑名单
+await bot.approveGroupJoinRequest(group_openid, request.member_openid, {
+    op: 'decline',
+    join_request_id: request.join_request_id,
+    reject_reason: '未通过入群验证',
+    add_to_member_blacklist: true,
+})
 ```
+
+`limit` 默认 20，最大 100。列表响应中的 `next_cursor` 为空时表示已到末页。
+
+### 群成员禁言
+
+```typescript
+const setting = await bot.getGroupMuteSetting(group_openid)
+console.log(setting.global_rule, setting.members)
+
+await bot.setGroupMemberMute(group_openid, [{
+    op: 'add',
+    member_openid,
+    mute_expire_at: '2026-08-12T12:00:00+08:00',
+}])
+
+await bot.setGroupMemberMute(group_openid, [{
+    op: 'del',
+    member_openid,
+}])
+```
+
+单次最多设置 10 个成员；只能禁言普通成员，不能操作群主、管理员或机器人。
+
+### 入群自动审批策略
+
+```typescript
+const strategy = await bot.createGroupJoinApprovalStrategy({
+    group_openids: [group_openid],
+    is_enable: 'on',
+    remark: '活动白名单',
+})
+
+await bot.updateGroupJoinApprovalWhitelist(strategy.strategy_id, {
+    op: 'add',
+    whitelist_users: ['1234567', '1234568'], // QQ 号使用字符串，避免精度丢失
+})
+
+await bot.executeGroupJoinApprovalStrategy(strategy.strategy_id)
+
+const strategies = await bot.getGroupJoinApprovalStrategies({ limit: 20 })
+await bot.updateGroupJoinApprovalStrategy(strategy.strategy_id, {
+    is_enable: 'off',
+})
+await bot.deleteGroupJoinApprovalStrategy(strategy.strategy_id)
+```
+
+创建策略时 `group_openids` 与 `group_ids` 二选一，最多关联 100 个群；每个机器人最多 20 个策略。白名单单次最多操作 10,000 个 QQ 号，策略总上限 100,000 个。
+
+### 用户申请加群事件
+
+订阅 `GROUP_AND_C2C_EVENT` 后，群管理员机器人可接收官方 `GROUP_JOIN_REQUEST` 事件：
+
+```typescript
+bot.on('notice.group.join_request', async (event) => {
+    console.log(event.group_id, event.user_id, event.verify_info)
+
+    await bot.approveGroupJoinRequest(event.group_id, event.user_id, {
+        op: 'approve',
+        join_request_id: event.join_request_id,
+    })
+})
+```
+
+自动审批通过的下行事件会额外携带 `event.auto_approved.strategy_id`。
 
 ## 🎯 群消息类型
 
@@ -298,24 +358,21 @@ interface GroupMessageEvent extends Message {
     reply(message: Sendable): Promise<any>
 }
 
-// 群成员信息接口
-interface GroupMember {
-    user_id: string
-    user_name: string
-    nickname?: string
-    role: 'owner' | 'admin' | 'member'
-    join_time?: number
-    last_sent_time?: number
+interface GroupInfo {
+    group_openid: string
+    group_name: string
+    group_finger_memo: string
+    group_class_text: string
+    group_tags: string[]
+    group_member_num: number
 }
 
-// 服务方法返回类型
-interface ApiResponse<T> {
-    success: boolean
-    data?: T
-    error?: {
-        code: number
-        message: string
-    }
+interface GroupBotState {
+    member_openid: string
+    joined_at: string // RFC3339
+    allow_proactive_msg: boolean
+    recv_msg_setting: 'all' | 'only_mention' | 'mention_and_context'
+    member_role: 'member' | 'owner' | 'admin'
 }
 ```
 
@@ -325,12 +382,13 @@ interface ApiResponse<T> {
 2. **频率限制**: 群消息有发送频率限制，请合理控制发送速度
 3. **@功能**: 使用@功能时需要确保机器人有@权限
 4. **消息类型**: 不同群可能对消息类型有不同限制
-5. **群管理**: 群成员操作可能需要管理员权限
+5. **群管理**: 入群审批、禁言等操作要求机器人拥有群管理员身份
 6. **机器人限制**: 某些群可能禁止机器人发言或限制功能
 7. **API 支持**: 部分群管理 API 可能在某些版本中不支持
 
 ## 📚 相关链接
 
-- [QQ 机器人群聊 API 文档](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/group/)
+- [QQ 机器人获取群基本信息](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_info.get.html)
+- [QQ 机器人群管理变更记录](https://bot.q.qq.com/wiki/develop/api-v2/changelog.html)
 - [消息格式参考](../interface/index.md#消息类型)
 - [权限配置指南](../config.md#intent-配置)

@@ -1,5 +1,6 @@
 import {AuditType, Bot, Dict, Emoji, ReactionTargetType} from "@";
 import {EventParser} from "@/events/index";
+import type { JoinRequestVerifyInfo } from '@/services/group'
 
 export class NoticeEvent {
     notice_type: NoticeEvent.Type
@@ -247,6 +248,46 @@ export namespace GroupMemberChangeNoticeEvent {
             case "notice.group.member.decrease":
                 return new GroupMemberChangeNoticeEvent(this, 'member.decrease', payload)
         }
+    }
+}
+
+export class GroupJoinRequestNoticeEvent extends NoticeEvent {
+    notice_type: 'group' = 'group'
+    sub_type: 'join_request' = 'join_request'
+    group_id: string
+    join_request_id: string
+    risk_tips: string
+    union_openid?: string
+    user_id: string
+    username: string
+    apply_at: string
+    apply_source: 'self_apply' | 'invited'
+    invited_by?: string
+    is_bot?: boolean
+    verify_info?: JoinRequestVerifyInfo
+    auto_approved?: { strategy_id: string }
+
+    constructor(bot: Bot, payload: Dict) {
+        super(bot, payload)
+        this.group_id = payload.group_openid
+        this.join_request_id = payload.join_request_id
+        this.risk_tips = payload.risk_tips ?? ''
+        this.union_openid = payload.union_openid
+        this.user_id = payload.member_openid
+        this.username = payload.username
+        this.apply_at = payload.apply_at
+        this.apply_source = payload.apply_source
+        this.invited_by = payload.invited_by
+        this.is_bot = payload.bot
+        this.verify_info = payload.verify_info
+        this.auto_approved = payload.auto_approved
+        bot.logger.info(`群[${this.group_id}]收到成员(${this.user_id})的入群申请`)
+    }
+}
+
+export namespace GroupJoinRequestNoticeEvent {
+    export const parse: EventParser = function (this: Bot, _event, payload) {
+        return new GroupJoinRequestNoticeEvent(this, payload)
     }
 }
 

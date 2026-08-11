@@ -46,7 +46,6 @@ import { Bot, ReceiverMode } from 'qq-official-bot'
 const bot = new Bot({
     appid: 'your_app_id',           // QQ 机器人的 App ID
     secret: 'your_app_secret',      // QQ 机器人的 App Secret
-    sandbox: false,                 // 是否为沙箱环境
     removeAt: true,                 // 自动移除消息中的 @机器人
     logLevel: 'info',               // 日志级别
     maxRetry: 10,                   // 最大重连次数
@@ -182,6 +181,7 @@ await bot.updateChannelMemberPermission(channel_id, user_id, { add: 'permission'
 | **ThreadService** | 帖子管理 | `getChannelThreads()`, `publishThread()`, `deleteThread()` |
 | **AudioService** | 音频控制 | `controlChannelAudio()`, `setOnlineMic()`, `setOfflineMic()` |
 | **BotService** | 机器人信息 | `getSelfInfo()`, `replyAction()` |
+| **GroupService** | 群聊管理 | `getInfo()`, `getBotState()`, `getJoinRequests()`, `setMemberMute()` |
 
 ### 服务特性
 
@@ -236,7 +236,8 @@ await bot.updateChannelMemberPermission(channel_id, user_id, { add: 'permission'
 interface BotConfig {
     appid: string              // 机器人 App ID
     secret: string             // 机器人 App Secret
-    sandbox?: boolean          // 是否为沙箱环境，默认 false
+    sandbox?: boolean          // 已废弃，保留用于兼容旧配置
+    apiBaseUrl?: string        // OpenAPI 根地址，默认 https://api.bot.qq.com
     removeAt?: boolean         // 是否移除消息中的 @，默认 false
     logLevel?: string          // 日志级别，默认 'info'
     maxRetry?: number          // 最大重连次数，默认 10
@@ -319,4 +320,3 @@ await bot.sendGroupMessage(group_id, [
 ```
 
 > `messageBuilder` 为内部构建器，由 `MessageService` 在发送时自动使用。业务侧推荐通过 `segment` 工厂函数组装 `Sendable` 消息。
-

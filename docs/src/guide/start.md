@@ -103,7 +103,7 @@ const bot = new Bot({
 2. 携带 `Authorization: QQBot <token>` 请求 `gatewayUrl`
 3. 使用 gateway 响应中的 `url` 建立 WebSocket 连接
 
-> `gatewayUrl` 为相对路径时，会拼接到 `sandbox` / 生产环境的 API 根地址（`api.sgroup.qq.com` 或 `sandbox.api.sgroup.qq.com`）。
+> `gatewayUrl` 为相对路径时，会拼接到 OpenAPI 根地址。QQ 官方现已统一使用 `https://api.bot.qq.com`；如配置了 `apiBaseUrl`，则使用自定义根地址。
 
 ### Webhook 连接模式
 
@@ -242,5 +242,4 @@ node bot.js
 - 查看 [配置文档](../config.md) 了解更多配置选项
 - 查看 [API 参考](../api/) 了解详细的 API 使用方法
 - 查看 [接口文档](../interface/) 了解类型定义
-
 

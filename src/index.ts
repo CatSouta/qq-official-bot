@@ -20,6 +20,9 @@ export * from './message'
 // Event system
 export * from './events'
 
+// API services and their request/response types
+export * from './services'
+
 // Entry classes
 export * from './entries'
 

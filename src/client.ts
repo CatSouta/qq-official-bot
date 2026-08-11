@@ -27,7 +27,7 @@ export class Client<T extends ReceiverMode, M extends ApplicationPlatform = Appl
     constructor(public readonly config: Client.Config<T, M>) {
         super();
         this.request = axios.create({
-            baseURL: config.sandbox ? 'https://sandbox.api.sgroup.qq.com' : 'https://api.sgroup.qq.com',
+            baseURL: config.apiBaseUrl ?? 'https://api.bot.qq.com',
             timeout: config.timeout ?? 5000,
             headers: {
                 'User-Agent': 'BotNodeSDK/0.0.1'
@@ -198,7 +198,10 @@ export namespace Client {
     export type Config<T extends ReceiverMode=ReceiverMode, M extends ApplicationPlatform = ApplicationPlatform> = {
         appid: string;
         secret: string;
+        /** @deprecated QQ OpenAPI 已统一使用 api.bot.qq.com；如需自定义地址请使用 apiBaseUrl。 */
         sandbox?: boolean;
+        /** OpenAPI 根地址，默认 https://api.bot.qq.com。 */
+        apiBaseUrl?: string;
         timeout?: number;
         maxRetry?: number;
         dataDir?: string;

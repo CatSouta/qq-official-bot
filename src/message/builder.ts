@@ -266,7 +266,8 @@ export class MessageBuilder {
    * 处理Markdown元素
    */
   private handleMarkdown(elem: MDElem): void {
-    this.messagePayload.markdown = elem.data;
+    const { force_verify_image_resource: _, ...guildMarkdown } = elem.data;
+    this.messagePayload.markdown = this.isGuild ? guildMarkdown : elem.data;
     this.messagePayload.msg_type = 2;
     const content = elem.data.content ? `content=${elem.data.content}` : `template_id=${elem.data.custom_template_id}`;
     this.brief += `<markdown,${content}>`;

@@ -10,6 +10,11 @@ export interface Quotable {
     event_id?: string
 }
 
+export interface MarkdownOptions {
+    /** 图片转存失败时中断发送并返回错误，默认 false。 */
+    force_verify_image_resource?: boolean;
+}
+
 export interface MessageElemMap {
     text: {
         text: string;
@@ -51,10 +56,12 @@ export interface MessageElemMap {
         content: string
         custom_template_id: never
         params: never
+        force_verify_image_resource?: boolean
     } | {
         custom_template_id: string
         content: never
         params: { key: string, values: string }[]
+        force_verify_image_resource?: boolean
     }
     keyboard: {
         id: string

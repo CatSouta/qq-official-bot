@@ -11,6 +11,7 @@ import {
     GroupActionNoticeEvent,
     GroupChangeNoticeEvent,
     GroupMemberChangeNoticeEvent,
+    GroupJoinRequestNoticeEvent,
     GroupReceiveNoticeEvent,
     GuildActionNoticeEvent,
     GuildChangeNoticeEvent,
@@ -25,6 +26,7 @@ import {ReceiverMode} from "@/receivers";
 import {ApplicationPlatform} from "@/receivers/middleware";
 
 export * from "./message"
+export { GroupJoinRequestNoticeEvent } from './notice'
 
 export enum QQEvent {
     DIRECT_MESSAGE_CREATE = 'message.private.direct',
@@ -47,6 +49,7 @@ export enum QQEvent {
     GROUP_DEL_ROBOT = 'notice.group.decrease',
     GROUP_MEMBER_ADD = 'notice.group.member.increase',
     GROUP_MEMBER_REMOVE = 'notice.group.member.decrease',
+    GROUP_JOIN_REQUEST = 'notice.group.join_request',
     GROUP_MSG_REJECT = 'notice.group.receive_close',
     GROUP_MSG_RECEIVE = 'notice.group.receive_open',
     FRIEND_ADD = 'notice.friend.increase',
@@ -95,6 +98,7 @@ EventParserMap.set(QQEvent.GROUP_ADD_ROBOT, GroupChangeNoticeEvent.parse)
 EventParserMap.set(QQEvent.GROUP_DEL_ROBOT, GroupChangeNoticeEvent.parse)
 EventParserMap.set(QQEvent.GROUP_MEMBER_ADD, GroupMemberChangeNoticeEvent.parse)
 EventParserMap.set(QQEvent.GROUP_MEMBER_REMOVE, GroupMemberChangeNoticeEvent.parse)
+EventParserMap.set(QQEvent.GROUP_JOIN_REQUEST, GroupJoinRequestNoticeEvent.parse)
 EventParserMap.set(QQEvent.GROUP_MSG_RECEIVE, GroupReceiveNoticeEvent.parse)
 EventParserMap.set(QQEvent.GROUP_MSG_REJECT, GroupReceiveNoticeEvent.parse)
 EventParserMap.set(QQEvent.GUILD_CREATE, GuildChangeNoticeEvent.parse)
@@ -157,7 +161,7 @@ export interface EventMap {
     'notice.reaction.add'(e:MessageReactionNoticeEvent):void
     'notice.reaction.remove'(e: MessageReactionNoticeEvent): void
 
-    'notice.group'(e: ActionNoticeEvent | GroupChangeNoticeEvent | GroupMemberChangeNoticeEvent | GroupReceiveNoticeEvent): void
+    'notice.group'(e: ActionNoticeEvent | GroupChangeNoticeEvent | GroupMemberChangeNoticeEvent | GroupReceiveNoticeEvent | GroupJoinRequestNoticeEvent): void
 
     'notice.group.increase'(e: GroupChangeNoticeEvent): void
 
@@ -168,6 +172,8 @@ export interface EventMap {
     'notice.group.member.increase'(e: GroupMemberChangeNoticeEvent): void
 
     'notice.group.member.decrease'(e: GroupMemberChangeNoticeEvent): void
+
+    'notice.group.join_request'(e: GroupJoinRequestNoticeEvent): void
 
     'notice.group.receive_close'(e: GroupReceiveNoticeEvent): void
 

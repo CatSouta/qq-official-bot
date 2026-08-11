@@ -86,7 +86,8 @@ namespace Bot {
     type Config<T extends ReceiverMode, M extends ApplicationPlatform = ApplicationPlatform> = {
         appid: string              // 机器人 APP ID
         secret: string             // 机器人密钥
-        sandbox?: boolean          // 是否为沙箱环境
+        sandbox?: boolean          // 已废弃，保留用于兼容旧配置
+        apiBaseUrl?: string        // OpenAPI 根地址，默认 https://api.bot.qq.com
         timeout?: number           // 请求超时时间（毫秒）
         maxRetry?: number          // 最大重试次数
         removeAt?: boolean         // 是否移除 @ 提及

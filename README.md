@@ -182,6 +182,7 @@ await bot.updateChannelMemberPermission(channel_id, user_id, { add: 'permission'
 | **AudioService** | 音频控制 | `controlChannelAudio()`, `setOnlineMic()`, `setOfflineMic()` |
 | **BotService** | 机器人信息 | `getSelfInfo()`, `replyAction()` |
 | **GroupService** | 群聊管理 | `getInfo()`, `getBotState()`, `getJoinRequests()`, `setMemberMute()` |
+| **MenuPanelService** | 自定义菜单与指令面板 | `getCustomMenu()`, `updateCustomMenu()`, `getCommandPanels()`, `createCommandPanel()` |
 
 ### 服务特性
 
@@ -227,6 +228,44 @@ await bot.updateChannelMemberPermission(channel_id, user_id, { add: 'permission'
 |-----|------|------|--------|
 | 获取成员权限 | `getChannelMemberPermission(channel_id, user_id)` | `channel_id: string, user_id: string` | `ChannelMemberPermissions` |
 | 更新成员权限 | `updateChannelMemberPermission(channel_id, user_id, permission)` | `channel_id: string, user_id: string, permission: UpdatePermissionParams` | `boolean` |
+
+### 菜单与指令面板 API
+
+| 功能 | 方法 | 参数 | 返回值 |
+|-----|------|------|--------|
+| 查询全局自定义菜单 | `getCustomMenu()` | - | `CustomMenuInfo` |
+| 修改全局自定义菜单 | `updateCustomMenu(menu)` | `menu: CustomMenu` | `UpdateCustomMenuResult` |
+| 查询指令面板列表 | `getCommandPanels(options)` | `options: CommandPanelListOptions` | `CommandPanelList` |
+| 创建指令面板 | `createCommandPanel(options)` | `options: CreateCommandPanelOptions` | `CreateCommandPanelResult` |
+| 查询指令面板详情 | `getCommandPanel(panelId)` | `panelId: string` | `CommandPanelDetail` |
+| 修改指令面板 | `updateCommandPanel(panelId, panel)` | `panelId: string, panel: CommandPanel` | `UpdateCommandPanelResult` |
+| 删除指令面板 | `deleteCommandPanel(panelId)` | `panelId: string` | `void` |
+| 修改面板关联对象 | `updateCommandPanelTargets(panelId, options)` | `panelId: string, options: UpdateCommandPanelTargetsOptions` | `void` |
+
+创建菜单和面板时可用 `menu` / `panel` 工厂（与 `segment` 相同风格）：
+
+```typescript
+import { menu, panel, segment } from 'qq-official-bot'
+
+await bot.updateCustomMenu(menu.build(
+    menu.sendMessage('帮助', '/help'),
+    menu.sendMessage('签到', segment.text('/sign')),
+    menu.link('官网', 'https://example.com'),
+    menu.switch('搜索', 'search'),
+    menu.submenu('更多', menu.sendMessage('设置', '/settings')),
+))
+
+await bot.createCommandPanel({
+    scope: 'c2c',
+    target_type: 'all',
+    panel: panel.build([
+        panel.command('查询天气', { desc: '查询当前天气' }),
+        panel.link('更多服务', 'https://example.com'),
+    ], 'C2C 面板'),
+})
+
+await bot.sendPrivateMessage(user_id, menu.text('/help'))
+```
 
 ## 🔧 配置选项
 

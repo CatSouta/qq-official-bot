@@ -29,6 +29,7 @@ export default defineConfig({
                     { text: '私信', link: '/api/direct' },
                     { text: '群', link: '/api/group' },
                     { text: '好友', link: '/api/friend' },
+                    { text: '菜单与面板', link: '/api/menu-panel' },
                 ]
             },
             {
@@ -77,6 +78,7 @@ export default defineConfig({
                     { text: '私信', link: '/api/direct' },
                     { text: '群', link: '/api/group' },
                     { text: '好友', link: '/api/friend' },
+                    { text: '菜单与面板', link: '/api/menu-panel' },
                 ]
             }
         ],

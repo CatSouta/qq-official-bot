@@ -43,7 +43,8 @@ import {
     ThreadService,
     AudioService,
     BotService,
-    GroupService
+    GroupService,
+    MenuPanelService
 } from "@/services";
 
 
@@ -65,6 +66,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
     public readonly audioService: AudioService = new AudioService(this.request);
     public readonly botService: BotService = new BotService(this.request);
     public readonly groupService: GroupService = new GroupService(this.request);
+    public readonly menuPanelService: MenuPanelService = new MenuPanelService(this.request);
 
     constructor(config: Bot.Config<T, M>) {
         super(config)
@@ -553,6 +555,38 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
     /** 增删入群自动审批策略的 QQ 号白名单 */
     async updateGroupJoinApprovalWhitelist(...args: Parameters<GroupService['updateJoinApprovalWhitelist']>) {
         return this.groupService.updateJoinApprovalWhitelist(...args)
+    }
+    /** 查询全局自定义菜单 */
+    async getCustomMenu(...args: Parameters<MenuPanelService['getCustomMenu']>) {
+        return this.menuPanelService.getCustomMenu(...args)
+    }
+    /** 修改全局自定义菜单 */
+    async updateCustomMenu(...args: Parameters<MenuPanelService['updateCustomMenu']>) {
+        return this.menuPanelService.updateCustomMenu(...args)
+    }
+    /** 查询指令面板列表 */
+    async getCommandPanels(...args: Parameters<MenuPanelService['getCommandPanels']>) {
+        return this.menuPanelService.getCommandPanels(...args)
+    }
+    /** 创建指令面板 */
+    async createCommandPanel(...args: Parameters<MenuPanelService['createCommandPanel']>) {
+        return this.menuPanelService.createCommandPanel(...args)
+    }
+    /** 查询指令面板详情 */
+    async getCommandPanel(...args: Parameters<MenuPanelService['getCommandPanel']>) {
+        return this.menuPanelService.getCommandPanel(...args)
+    }
+    /** 修改指令面板 */
+    async updateCommandPanel(...args: Parameters<MenuPanelService['updateCommandPanel']>) {
+        return this.menuPanelService.updateCommandPanel(...args)
+    }
+    /** 删除指令面板 */
+    async deleteCommandPanel(...args: Parameters<MenuPanelService['deleteCommandPanel']>) {
+        return this.menuPanelService.deleteCommandPanel(...args)
+    }
+    /** 修改指令面板关联对象 */
+    async updateCommandPanelTargets(...args: Parameters<MenuPanelService['updateCommandPanelTargets']>) {
+        return this.menuPanelService.updateCommandPanelTargets(...args)
     }
     /**
      * 获取好友列表

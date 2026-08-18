@@ -14,6 +14,7 @@ export { ThreadService } from './thread'
 export { AudioService } from './audio'
 export { BotService } from './bot'
 export * from './group'
+export * from './menu-panel'
 
 // 定义通用API响应类型
 export type ApiResponse<T> = {

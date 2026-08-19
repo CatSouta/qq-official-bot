@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.0](https://github.com/zhinjs/qq-official-bot/compare/v1.2.4...v1.3.0) (2026-08-19)
+
+
+### Features
+
+* add MenuPanelService and update documentation ([bae451b](https://github.com/zhinjs/qq-official-bot/commit/bae451bb6948b8edecaa547c63dd9c32223e7e75))
+
+
+### Bug Fixes
+
+* enhance message sending methods and update documentation ([82002bb](https://github.com/zhinjs/qq-official-bot/commit/82002bbc8f1f2a4632ebf2c0f9b883e57a2dd8c4))
+* update method names and improve documentation in README ([6b31047](https://github.com/zhinjs/qq-official-bot/commit/6b31047f1f041905f0561f7271d79558ed34c974))
+* update README and documentation for group management features ([b44e357](https://github.com/zhinjs/qq-official-bot/commit/b44e357d1f512d8976561bc316d9288ab2881a11))
+
 ## [1.2.4](https://github.com/zhinjs/qq-official-bot/compare/v1.2.3...v1.2.4) (2026-08-07)
 
 

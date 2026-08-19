@@ -40,46 +40,80 @@ interface Bot.Info {
 
 ## 📁 文件上传
 
+群聊、单聊的图片/视频/语音/文件需先上传拿到 `file_info`，再以 `msg_type=7` 发送。官方推荐**分片上传**；公网可访问的地址仍可用 URL 转存。频道消息不受此流程影响。
+
+官方文档：[富媒体消息概述](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/rich-media.html)
+
+| 方式 | 适用 | 行为 |
+|------|------|------|
+| URL 转存 | `http(s)://` 公网文件 | `POST .../files`，平台下载转存 |
+| 分片上传 | 本地路径 / Buffer / Base64 | 预上传 → PUT 分片 → 确认分片 → 合并 |
+
+单聊与群聊上传互不通用，必须对对应会话上传。
+
 ### 上传富媒体文件
 
-上传图片、音频、视频等富媒体文件。
-
-**方法名**: `bot.uploadMedia(targetId, targetType, fileData)`
+**方法名**: `bot.fileProcessor.uploadMedia(fileData, options)` / `bot.uploadMedia(targetId, targetType, fileData, options?)`
 
 **参数**:
 | 参数名 | 类型 | 必填 | 描述 |
 |-------|------|------|------|
-| `targetId` | `string` | ✅ | 目标 ID（用户 ID 或群组 ID） |
-| `targetType` | `'user' \| 'group'` | ✅ | 目标类型 |
-| `fileData` | `string \| Buffer` | ✅ | 文件数据 |
+| `targetId` | `string` | ✅ | 用户 OpenID 或群 OpenID |
+| `targetType` | `'user' \| 'group'` | ✅ | 上传场景 |
+| `fileData` | `string \| Buffer` | ✅ | 本地路径、http(s) URL、Base64 或 Buffer |
+| `options.fileType` | `1 \| 2 \| 3 \| 4` | ❌ | 1 图片、2 视频、3 语音、4 文件；可按扩展名推断 |
+| `options.fileName` | `string` | ❌ | 文件名 |
+| `options.sendMessage` | `boolean` | ❌ | `true` 时上传后直接发送（占用主动消息频次） |
+| `options.forceChunked` | `boolean` | ❌ | 即使是 URL 也先下载再走分片 |
 
 **文件数据格式**:
-- **本地文件**: `file://path/to/file.jpg`
+- **本地文件**: `/path/to/file.jpg` 或 `file:///path/to/file.jpg`
 - **网络 URL**: `https://example.com/image.jpg`
-- **Base64**: `data:image/jpeg;base64,/9j/4AAQ...`
-- **Buffer**: 直接传入 Buffer 对象
+- **Base64**: `base64://...` 或 `data:image/jpeg;base64,...`
+- **Buffer**: 直接传入 Buffer
 
 ```typescript
-// 上传本地文件
-const result1 = await bot.uploadMedia(user_id, 'user', 'file:///path/to/image.jpg')
+// 本地文件：自动走分片上传
+const local = await bot.uploadMedia(group_id, 'group', './demo.mp4', {
+    fileType: 2,
+    fileName: 'demo.mp4',
+})
+console.log(local.file_info, local.ttl, local.raw_url)
 
-// 上传网络文件
-const result2 = await bot.uploadMedia(user_id, 'user', 'https://example.com/image.jpg')
+// 公网 URL：平台转存
+const remote = await bot.uploadMedia(user_id, 'user', 'https://example.com/image.jpg', {
+    fileType: 1,
+})
 
-// 上传 Base64 数据
-const result3 = await bot.uploadMedia(user_id, 'user', 'data:image/jpeg;base64,/9j/4AAQ...')
+// 发消息时本地图片也会自动分片上传
+await bot.sendGroupMessage(group_id, segment.image('./photo.png'))
+```
 
-// 上传 Buffer
-const buffer = fs.readFileSync('image.jpg')
-const result4 = await bot.uploadMedia(user_id, 'user', buffer)
+发送消息时一般不必手动上传：`sendGroupMessage` / `sendPrivateMessage` 遇到本地文件会先分片上传，再带 `media.file_info` 发出。
+
+底层也可分步调用：
+
+```typescript
+const prepared = await bot.fileProcessor.prepareUpload('group', group_id, {
+    file_type: 2,
+    file_size: String(buffer.length),
+    file_name: 'demo.mp4',
+    md5,
+    sha1,
+    md5_10m,
+})
+// PUT prepared.parts[i].presigned_url 后调用 finishUploadPart
+// 全部完成后 completeUpload 拿到 file_info
 ```
 
 **返回数据结构**:
 ```typescript
-interface UploadResult {
+interface FileUploadResult {
     file_uuid: string       // 文件唯一标识
-    file_info: string       // 文件信息
-    ttl: number            // 文件有效期（秒）
+    file_info: string       // 发送消息时透传到 media.file_info
+    ttl: number             // 有效期（秒），0 表示可长期使用
+    id?: string             // 仅 srv_send_msg=true 时返回
+    raw_url?: string        // 分片上传合并后的预签名下载地址（图片/视频/语音）
 }
 ```
 

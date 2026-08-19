@@ -163,19 +163,10 @@ bot.start()
 新版本采用服务模块化设计，每个服务负责特定的功能领域：
 
 ```typescript
-// 使用频道服务
-const guilds = await bot.guildService.getList()
-if (guilds.success) {
-    console.log('频道列表:', guilds.data)
-}
+await bot.channel(channel_id).send('Hello from channel')
+await bot.group(group_id).send('Hello from group')
+await bot.user(user_id).send('Hello from C2C')
 
-// 使用消息服务
-const result = await bot.messageService.sendGuildMessage(
-    channel_id, 
-    'Hello from MessageService!'
-)
-
-// 使用成员管理服务
 await bot.memberService.muteGuildMember(guild_id, user_id, 600)
 
 // 使用权限管理服务

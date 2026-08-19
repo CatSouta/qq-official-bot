@@ -1,5 +1,5 @@
 import type { MessageElem, Sendable } from "@/elements";
-import { Bot } from "@";
+import type { Bot } from "@/bot";
 import type { Dict } from "@/types";
 import { trimQuote } from "@/utils/string";
 import type { User } from "@/entries/user";
@@ -47,9 +47,7 @@ export class Message {
 
     toJSON() {
         return Object.fromEntries(Object.keys(this)
-            .filter(key => {
-                return typeof this[key] !== "function" && !(this[key] instanceof Bot)
-            })
+            .filter(key => key !== 'bot' && typeof this[key] !== "function")
             .map(key => [key, this[key]])
         )
     }
@@ -75,6 +73,8 @@ export namespace Message {
         file_uuid: string
         file_info: string
         ttl: number
+        id?: string
+        raw_url?: string
     }
     export type Type = 'private' | 'group' | 'guild'
     export type SubType = 'direct' | 'friend' | 'temp' | 'normal'

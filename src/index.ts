@@ -29,7 +29,6 @@ export * from './entries'
 // Modular components (for advanced usage)
 export * from '@/core/auth'
 
-export * from './core/connection'
 export * from './core/session'
 
 // Receivers (for advanced usage)

@@ -1,5 +1,6 @@
 import {GroupMessageEvent, GuildMessageEvent, MessageAuditEvent, MessageEvent, PrivateMessageEvent} from "./message";
-import {Bot, Dict} from "@";
+import type { Bot } from "@/bot";
+import type { Dict } from "@/types";
 import {
     ActionNoticeEvent,
     FormAuditNoticeEvent,
@@ -28,107 +29,110 @@ import {ApplicationPlatform} from "@/receivers/middleware";
 export * from "./message"
 export { GroupJoinRequestNoticeEvent } from './notice'
 
-export enum QQEvent {
-    DIRECT_MESSAGE_CREATE = 'message.private.direct',
-    AT_MESSAGE_CREATE = 'message.guild',
-    MESSAGE_CREATE = 'message.guild',
-    MESSAGE_REACTION_ADD='notice.reaction.add',
-    MESSAGE_REACTION_REMOVE = 'notice.reaction.remove',
-    GUILD_CREATE = 'notice.guild.increase',
-    GUILD_UPDATE = 'notice.guild.update',
-    GUILD_DELETE = 'notice.guild.decrease',
-    CHANNEL_CREATE = 'notice.channel.increase',
-    CHANNEL_UPDATE = 'notice.channel.update',
-    CHANNEL_DELETE = 'notice.channel.decrease',
-    AUDIO_OR_LIVE_CHANNEL_MEMBER_ENTER = 'notice.channel.enter',
-    AUDIO_OR_LIVE_CHANNEL_MEMBER_EXIT = 'notice.channel.exit',
-    GUILD_MEMBER_ADD = 'notice.guild.member.increase',
-    GUILD_MEMBER_UPDATE = 'notice.guild.member.update',
-    GUILD_MEMBER_REMOVE = 'notice.guild.member.decrease',
-    GROUP_ADD_ROBOT = 'notice.group.increase',
-    GROUP_DEL_ROBOT = 'notice.group.decrease',
-    GROUP_MEMBER_ADD = 'notice.group.member.increase',
-    GROUP_MEMBER_REMOVE = 'notice.group.member.decrease',
-    GROUP_JOIN_REQUEST = 'notice.group.join_request',
-    GROUP_MSG_REJECT = 'notice.group.receive_close',
-    GROUP_MSG_RECEIVE = 'notice.group.receive_open',
-    FRIEND_ADD = 'notice.friend.increase',
-    FRIEND_DEL = 'notice.friend.decrease',
-    C2C_MSG_REJECT = 'notice.friend.receive_close',
-    C2C_MSG_RECEIVE = 'notice.friend.receive_open',
-    INTERACTION_CREATE = 'notice',
-    MESSAGE_AUDIT_PASS = 'message.audit.pass',
-    MESSAGE_AUDIT_REJECT = 'message.audit.reject',
-    C2C_MESSAGE_CREATE = 'message.private.friend',
-    GROUP_MESSAGE_CREATE = 'message.group',
-    GROUP_AT_MESSAGE_CREATE = 'message.group.at',
-    FORUM_THREAD_CREATE = 'notice.forum.thread.create',
-    FORUM_THREAD_UPDATE = 'notice.forum.thread.update',
-    FORUM_THREAD_DELETE = 'notice.forum.thread.delete',
-    FORUM_POST_CREATE = 'notice.forum.post.create',
-    FORUM_POST_DELETE = 'notice.forum.post.delete',
-    FORUM_REPLY_CREATE = 'notice.forum.reply.create',
-    FORUM_REPLY_DELETE = 'notice.forum.reply.delete',
-    FORUM_PUBLISH_AUDIT_RESULT = 'notice.forum.audit',
-    OPEN_FORUM_THREAD_CREATE = 'notice.forum',
-    OPEN_FORUM_THREAD_UPDATE = 'notice.forum',
-    OPEN_FORUM_THREAD_DELETE = 'notice.forum',
-    OPEN_FORUM_POST_CREATE = 'notice.forum',
-    OPEN_FORUM_POST_DELETE = 'notice.forum',
-    OPEN_FORUM_REPLY_CREATE = 'notice.forum',
-    OPEN_FORUM_REPLY_DELETE = 'notice.forum'
+export type EventParser<T extends keyof EventMap = keyof EventMap> = (this: Bot<ReceiverMode, ApplicationPlatform>, event: T, payload: Dict) => Parameters<EventMap[T]>[0]
+
+export type EventRegistration = {
+    gateway: string
+    name: string
+    parser: EventParser
+    resolve?: (payload: Dict) => string
+    also?: readonly string[]
 }
 
-export type EventParser<T extends keyof EventMap = keyof EventMap> = (this: Bot<ReceiverMode,ApplicationPlatform>, event: T, payload: Dict) => Parameters<EventMap[T]>[0]
-export const EventParserMap: Map<string, EventParser> = new Map<string, EventParser>()
-EventParserMap.set(QQEvent.MESSAGE_AUDIT_PASS, MessageAuditEvent.parse)
-EventParserMap.set(QQEvent.MESSAGE_AUDIT_REJECT, MessageAuditEvent.parse)
-EventParserMap.set(QQEvent.AT_MESSAGE_CREATE, MessageEvent.parse)
-EventParserMap.set(QQEvent.DIRECT_MESSAGE_CREATE, MessageEvent.parse)
-EventParserMap.set(QQEvent.MESSAGE_CREATE, MessageEvent.parse)
-EventParserMap.set(QQEvent.GROUP_MESSAGE_CREATE, MessageEvent.parse)
-EventParserMap.set(QQEvent.GROUP_AT_MESSAGE_CREATE, MessageEvent.parse)
-EventParserMap.set(QQEvent.C2C_MESSAGE_CREATE, MessageEvent.parse)
-EventParserMap.set(QQEvent.INTERACTION_CREATE, ActionNoticeEvent.parse)
-EventParserMap.set(QQEvent.FRIEND_ADD, FriendChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.FRIEND_DEL, FriendChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.C2C_MSG_REJECT, FriendReceiveNoticeEvent.parse)
-EventParserMap.set(QQEvent.C2C_MSG_RECEIVE, FriendReceiveNoticeEvent.parse)
-EventParserMap.set(QQEvent.GROUP_ADD_ROBOT, GroupChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.GROUP_DEL_ROBOT, GroupChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.GROUP_MEMBER_ADD, GroupMemberChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.GROUP_MEMBER_REMOVE, GroupMemberChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.GROUP_JOIN_REQUEST, GroupJoinRequestNoticeEvent.parse)
-EventParserMap.set(QQEvent.GROUP_MSG_RECEIVE, GroupReceiveNoticeEvent.parse)
-EventParserMap.set(QQEvent.GROUP_MSG_REJECT, GroupReceiveNoticeEvent.parse)
-EventParserMap.set(QQEvent.GUILD_CREATE, GuildChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.GUILD_UPDATE, GuildChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.GUILD_DELETE, GuildChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.CHANNEL_CREATE, ChannelChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.CHANNEL_UPDATE, ChannelChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.CHANNEL_DELETE, ChannelChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.AUDIO_OR_LIVE_CHANNEL_MEMBER_ENTER, ChannelChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.AUDIO_OR_LIVE_CHANNEL_MEMBER_EXIT, ChannelChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.GUILD_MEMBER_ADD, GuildMemberChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.GUILD_MEMBER_UPDATE, GuildMemberChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.GUILD_MEMBER_REMOVE, GuildMemberChangeNoticeEvent.parse)
-EventParserMap.set(QQEvent.FORUM_THREAD_CREATE, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.FORUM_THREAD_UPDATE, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.FORUM_THREAD_DELETE, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.FORUM_POST_CREATE, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.FORUM_POST_DELETE, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.FORUM_REPLY_CREATE, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.FORUM_REPLY_DELETE, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.FORUM_PUBLISH_AUDIT_RESULT, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.OPEN_FORUM_THREAD_CREATE, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.OPEN_FORUM_THREAD_UPDATE, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.OPEN_FORUM_THREAD_DELETE, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.OPEN_FORUM_POST_CREATE, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.OPEN_FORUM_POST_DELETE, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.OPEN_FORUM_REPLY_CREATE, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.OPEN_FORUM_REPLY_DELETE, ForumNoticeEvent.parse)
-EventParserMap.set(QQEvent.MESSAGE_REACTION_ADD,MessageReactionNoticeEvent.parse)
-EventParserMap.set(QQEvent.MESSAGE_REACTION_REMOVE,MessageReactionNoticeEvent.parse)
+function interactionName(payload: Dict): string {
+    switch (payload.scene) {
+        case 'c2c': return 'notice.friend.action'
+        case 'group': return 'notice.group.action'
+        case 'guild': return 'notice.guild.action'
+        default: return 'notice'
+    }
+}
+
+/** 一张表：网关名 → 内部名 → parser。新事件只在这里加一行。 */
+export const EVENT_REGISTRY = [
+    { gateway: 'DIRECT_MESSAGE_CREATE', name: 'message.private.direct', parser: MessageEvent.parse },
+    { gateway: 'AT_MESSAGE_CREATE', name: 'message.guild', parser: MessageEvent.parse },
+    { gateway: 'MESSAGE_CREATE', name: 'message.guild', parser: MessageEvent.parse },
+    { gateway: 'C2C_MESSAGE_CREATE', name: 'message.private.friend', parser: MessageEvent.parse },
+    { gateway: 'GROUP_MESSAGE_CREATE', name: 'message.group', parser: MessageEvent.parse },
+    { gateway: 'GROUP_AT_MESSAGE_CREATE', name: 'message.group.at', parser: MessageEvent.parse },
+    { gateway: 'MESSAGE_AUDIT_PASS', name: 'message.audit.pass', parser: MessageAuditEvent.parse },
+    { gateway: 'MESSAGE_AUDIT_REJECT', name: 'message.audit.reject', parser: MessageAuditEvent.parse },
+    {
+        gateway: 'INTERACTION_CREATE',
+        name: 'notice',
+        parser: ActionNoticeEvent.parse,
+        resolve: interactionName,
+        also: ['notice.friend.action', 'notice.group.action', 'notice.guild.action'] as const,
+    },
+    { gateway: 'FRIEND_ADD', name: 'notice.friend.increase', parser: FriendChangeNoticeEvent.parse },
+    { gateway: 'FRIEND_DEL', name: 'notice.friend.decrease', parser: FriendChangeNoticeEvent.parse },
+    { gateway: 'C2C_MSG_REJECT', name: 'notice.friend.receive_close', parser: FriendReceiveNoticeEvent.parse },
+    { gateway: 'C2C_MSG_RECEIVE', name: 'notice.friend.receive_open', parser: FriendReceiveNoticeEvent.parse },
+    { gateway: 'GROUP_ADD_ROBOT', name: 'notice.group.increase', parser: GroupChangeNoticeEvent.parse },
+    { gateway: 'GROUP_DEL_ROBOT', name: 'notice.group.decrease', parser: GroupChangeNoticeEvent.parse },
+    { gateway: 'GROUP_MEMBER_ADD', name: 'notice.group.member.increase', parser: GroupMemberChangeNoticeEvent.parse },
+    { gateway: 'GROUP_MEMBER_REMOVE', name: 'notice.group.member.decrease', parser: GroupMemberChangeNoticeEvent.parse },
+    { gateway: 'GROUP_JOIN_REQUEST', name: 'notice.group.join_request', parser: GroupJoinRequestNoticeEvent.parse },
+    { gateway: 'GROUP_MSG_REJECT', name: 'notice.group.receive_close', parser: GroupReceiveNoticeEvent.parse },
+    { gateway: 'GROUP_MSG_RECEIVE', name: 'notice.group.receive_open', parser: GroupReceiveNoticeEvent.parse },
+    { gateway: 'GUILD_CREATE', name: 'notice.guild.increase', parser: GuildChangeNoticeEvent.parse },
+    { gateway: 'GUILD_UPDATE', name: 'notice.guild.update', parser: GuildChangeNoticeEvent.parse },
+    { gateway: 'GUILD_DELETE', name: 'notice.guild.decrease', parser: GuildChangeNoticeEvent.parse },
+    { gateway: 'CHANNEL_CREATE', name: 'notice.channel.increase', parser: ChannelChangeNoticeEvent.parse },
+    { gateway: 'CHANNEL_UPDATE', name: 'notice.channel.update', parser: ChannelChangeNoticeEvent.parse },
+    { gateway: 'CHANNEL_DELETE', name: 'notice.channel.decrease', parser: ChannelChangeNoticeEvent.parse },
+    { gateway: 'AUDIO_OR_LIVE_CHANNEL_MEMBER_ENTER', name: 'notice.channel.enter', parser: ChannelChangeNoticeEvent.parse },
+    { gateway: 'AUDIO_OR_LIVE_CHANNEL_MEMBER_EXIT', name: 'notice.channel.exit', parser: ChannelChangeNoticeEvent.parse },
+    { gateway: 'GUILD_MEMBER_ADD', name: 'notice.guild.member.increase', parser: GuildMemberChangeNoticeEvent.parse },
+    { gateway: 'GUILD_MEMBER_UPDATE', name: 'notice.guild.member.update', parser: GuildMemberChangeNoticeEvent.parse },
+    { gateway: 'GUILD_MEMBER_REMOVE', name: 'notice.guild.member.decrease', parser: GuildMemberChangeNoticeEvent.parse },
+    { gateway: 'MESSAGE_REACTION_ADD', name: 'notice.reaction.add', parser: MessageReactionNoticeEvent.parse },
+    { gateway: 'MESSAGE_REACTION_REMOVE', name: 'notice.reaction.remove', parser: MessageReactionNoticeEvent.parse },
+    { gateway: 'FORUM_THREAD_CREATE', name: 'notice.forum.thread.create', parser: ForumNoticeEvent.parse },
+    { gateway: 'FORUM_THREAD_UPDATE', name: 'notice.forum.thread.update', parser: ForumNoticeEvent.parse },
+    { gateway: 'FORUM_THREAD_DELETE', name: 'notice.forum.thread.delete', parser: ForumNoticeEvent.parse },
+    { gateway: 'FORUM_POST_CREATE', name: 'notice.forum.post.create', parser: ForumNoticeEvent.parse },
+    { gateway: 'FORUM_POST_DELETE', name: 'notice.forum.post.delete', parser: ForumNoticeEvent.parse },
+    { gateway: 'FORUM_REPLY_CREATE', name: 'notice.forum.reply.create', parser: ForumNoticeEvent.parse },
+    { gateway: 'FORUM_REPLY_DELETE', name: 'notice.forum.reply.delete', parser: ForumNoticeEvent.parse },
+    { gateway: 'FORUM_PUBLISH_AUDIT_RESULT', name: 'notice.forum.audit', parser: ForumNoticeEvent.parse },
+    { gateway: 'OPEN_FORUM_THREAD_CREATE', name: 'notice.forum', parser: ForumNoticeEvent.parse },
+    { gateway: 'OPEN_FORUM_THREAD_UPDATE', name: 'notice.forum', parser: ForumNoticeEvent.parse },
+    { gateway: 'OPEN_FORUM_THREAD_DELETE', name: 'notice.forum', parser: ForumNoticeEvent.parse },
+    { gateway: 'OPEN_FORUM_POST_CREATE', name: 'notice.forum', parser: ForumNoticeEvent.parse },
+    { gateway: 'OPEN_FORUM_POST_DELETE', name: 'notice.forum', parser: ForumNoticeEvent.parse },
+    { gateway: 'OPEN_FORUM_REPLY_CREATE', name: 'notice.forum', parser: ForumNoticeEvent.parse },
+    { gateway: 'OPEN_FORUM_REPLY_DELETE', name: 'notice.forum', parser: ForumNoticeEvent.parse },
+] as const
+
+const gatewayIndex = new Map<string, (typeof EVENT_REGISTRY)[number]>(
+    EVENT_REGISTRY.map(entry => [entry.gateway, entry])
+)
+
+/** @deprecated 由 EVENT_REGISTRY 生成；新代码请用 resolveGatewayEvent */
+export const QQEvent: Record<string, string> = Object.fromEntries(
+    EVENT_REGISTRY.map(entry => [entry.gateway, entry.name])
+)
+
+export const EventParserMap: Map<string, EventParser> = new Map()
+for (const entry of EVENT_REGISTRY) {
+    EventParserMap.set(entry.name, entry.parser)
+    if ('also' in entry) {
+        for (const alias of entry.also) {
+            EventParserMap.set(alias, entry.parser)
+        }
+    }
+}
+
+export function resolveGatewayEvent(gateway: string, payload: Dict): { name: string; parser: EventParser } | undefined {
+    const entry = gatewayIndex.get(gateway)
+    if (!entry) return undefined
+    return {
+        name: 'resolve' in entry && entry.resolve ? entry.resolve(payload) : entry.name,
+        parser: entry.parser,
+    }
+}
 
 export interface EventMap {
     'message'(e: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent|MessageAuditEvent): void
@@ -235,3 +239,12 @@ export interface EventMap {
 
     'notice.forum.reply.delete'(e: ReplyChangeNoticeEvent): void
 }
+
+type EntryNames<E> = E extends { name: infer N extends string }
+    ? E extends { also: infer A }
+        ? N | (A extends readonly (infer I extends string)[] ? I : never)
+        : N
+    : never
+type RegisteredEventName = EntryNames<(typeof EVENT_REGISTRY)[number]>
+type AssertTrue<T extends true> = T
+type _RegistryNamesCoveredByEventMap = AssertTrue<RegisteredEventName extends keyof EventMap ? true : false>

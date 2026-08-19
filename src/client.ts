@@ -5,7 +5,7 @@ import { FormData } from 'formdata-node';
 import * as log4js from 'log4js';
 import { Session } from "./core/session";
 import type { Dict, LogLevel, DataPacket } from "@/types";
-import { EventMap, EventParserMap, QQEvent } from "./events";
+import { EventMap, EventParserMap, resolveGatewayEvent } from "./events";
 import { Intent } from "./constants";
 import type { ApplicationPlatform } from "@/receivers/middleware";
 import {ReceiverMode,ReceiveModeConfig} from "@/receivers";
@@ -76,7 +76,8 @@ export class Client<T extends ReceiverMode, M extends ApplicationPlatform = Appl
         const { d: payload, id: event_id = '' } = wsRes;
         if (!payload || !event) return;
 
-        const transformEvent = QQEvent[event] ?? 'system';
+        const resolved = resolveGatewayEvent(event, payload);
+        const transformEvent = resolved?.name ?? 'system';
 
         try {
             const result = this.processPayload(event_id, transformEvent, payload);

@@ -1,5 +1,6 @@
-import {AuditType, Bot, Dict, Emoji, ReactionTargetType} from "@";
-import {EventParser} from "@/events/index";
+import type { Bot } from "@/bot";
+import { AuditType, ReactionTargetType, type Dict, type Emoji } from "@/types";
+import type { EventParser } from "@/events/index";
 import type { JoinRequestVerifyInfo } from '@/services/group'
 
 export class NoticeEvent {
@@ -50,8 +51,6 @@ export class FriendActionNoticeEvent extends ActionNoticeEvent {
     constructor(bot: Bot, payload: Dict) {
         super(bot, payload)
         this.operator_id = payload.user_openid
-        bot.emit(`notice.${this.notice_type}`, this)
-        bot.emit(`notice.${this.notice_type}.action`, this)
         bot.logger.info(`好友${this.operator_id} 点击了消息按钮：${this.data.resolved.button_id}`)
     }
 }
@@ -64,8 +63,6 @@ export class GroupActionNoticeEvent extends ActionNoticeEvent {
         super(bot, payload)
         this.group_id = payload.group_openid
         this.operator_id = payload.group_member_openid
-        bot.emit(`notice.${this.notice_type}`, this)
-        bot.emit(`notice.${this.notice_type}.action`, this)
         bot.logger.info(`群(${this.group_id})成员${this.operator_id} 点击了消息按钮：${this.data.resolved.button_id}`)
     }
 }
@@ -81,8 +78,6 @@ export class GuildActionNoticeEvent extends ActionNoticeEvent {
         this.guild_id = payload.guild_id
         this.channel_id = payload.channel_id
         this.operator_id = payload.data.resoloved.user_id
-        bot.emit(`notice.${this.notice_type}`, this)
-        bot.emit(`notice.${this.notice_type}.action`, this)
         bot.logger.info(`频道(${this.guild_id})成员${this.operator_id}在子频道(${this.channel_id})点击了消息按钮：${this.data.resolved.button_id}`)
     }
 }
@@ -476,11 +471,11 @@ export namespace ForumNoticeEvent {
             case "notice.forum.post.create":
                 return new PostChangeNoticeEvent(this, 'create', payload)
             case "notice.forum.post.delete":
-                return new ThreadChangeNoticeEvent(this, 'delete', payload)
+                return new PostChangeNoticeEvent(this, 'delete', payload)
             case "notice.forum.reply.create":
                 return new ReplyChangeNoticeEvent(this, 'create', payload)
             case "notice.forum.reply.delete":
-                return new ReplyChangeNoticeEvent(this, 'create', payload)
+                return new ReplyChangeNoticeEvent(this, 'delete', payload)
             case "notice.forum.audit":
                 return new FormAuditNoticeEvent(this, payload)
         }

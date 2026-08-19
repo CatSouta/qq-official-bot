@@ -46,7 +46,7 @@ interface DMS {
 
 向指定用户发送频道私信。
 
-**方法名**: `bot.messageService.sendDirectMessage(guildId, message, source?)` / `bot.sendDirectMessage(guildId, message, source?)`
+**方法名**: `bot.direct(guildId).send(message, source?)` / `bot.sendDirectMessage(guildId, message, source?)`
 
 **参数**:
 | 参数名 | 类型 | 必填 | 描述 |
@@ -56,8 +56,7 @@ interface DMS {
 | `source` | `Quotable` | ❌ | 引用消息 |
 
 ```typescript
-// 发送文本私信
-await bot.messageService.sendDirectMessage(guild_id, 'Hello, 这是一条私信!')
+await bot.direct(guild_id).send('Hello, 这是一条私信!')
 
 // 发送富媒体私信
 import { segment } from 'qq-official-bot'

@@ -164,15 +164,14 @@ const result = await bot.messageService.sendGuildMessage(
     ]
 )
 
-// 使用消息构建器
-const message = bot.messageBuilder
-    .text("欢迎 ")
-    .at(userId)
-    .text(" 加入频道！")
-    .face("1")
-    .build()
+import { segment } from 'qq-official-bot'
 
-await bot.sendMessage(channelId, message)
+await bot.sendGuildMessage(channelId, [
+    segment.text('欢迎 '),
+    segment.at(userId),
+    segment.text(' 加入频道！'),
+    segment.face('1'),
+])
 ```
 
 ## 📚 消息段列表

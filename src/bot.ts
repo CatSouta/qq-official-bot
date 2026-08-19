@@ -1,16 +1,11 @@
 import { Client } from "./client";
 
-import { Guild } from "@/entries";
+import { Guild, Channel, Group, User, Direct } from "@/entries";
 import {
-    Announce,
     ApiBaseInfo,
-    ApiPermissionDemand,
     AudioControl,
-    ChannelMemberPermissions,
     ChannelUpdateInfo,
-    DMS,
     EmojiType,
-    PinsMessage,
     RoleCreateParam,
     RoleUpdateParam,
     ScheduleInfo,
@@ -20,16 +15,11 @@ import {
 } from "@/types";
 import { Quotable, Sendable } from "@/elements";
 import { UnsupportedMethodError } from "./constants";
-import { AxiosResponse } from "axios";
-import { GuildMember } from "@/entries/guildMember";
 import { ActionNoticeEvent } from "@/events/notice";
 import { GuildMessageEvent } from "./events";
 import { ApplicationPlatform, Middleware, ReceiverMode } from "@/receivers";
 import { ResolveReceiver } from "@/receivers";
-
-// 导入重构后的消息系统
-import { MessageBuilder, FileProcessor } from "@/message";
-import { Channel } from "@/entries";
+import { FileProcessor } from "@/message";
 
 // 导入服务模块
 import {
@@ -51,7 +41,6 @@ import {
 export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPlatform = ApplicationPlatform> extends Client<T, M> {
 
     // 重构后的组件实例
-    public readonly messageBuilder: MessageBuilder;
     public readonly messageService: MessageService;
     public readonly fileProcessor: FileProcessor = new FileProcessor(this.request);
 
@@ -72,7 +61,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
         super(config)
 
         // 获取基础URL
-        this.messageService = new MessageService(this.request, this.config.appid);
+        this.messageService = new MessageService(this.request, this.config.appid, this.fileProcessor);
         const nodeVersion = parseInt(process.version.slice(1))
         if (nodeVersion < 16) {
             this.logger.warn(`你的node版本(${process.version}) <16，可能会出现不可预测的错误，请升级node版本，为确保服务正常运行，请升级node版本`)
@@ -83,6 +72,26 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
         process.on("unhandledRejection", e => {
             this.logger.debug(e instanceof Error ? e.stack : e)
         })
+    }
+
+    group(id: string) {
+        return new Group(this, id)
+    }
+
+    user(id: string) {
+        return new User(this, id)
+    }
+
+    channel(id: string) {
+        return new Channel(this, id)
+    }
+
+    direct(guildId: string) {
+        return new Direct(this, guildId)
+    }
+
+    guild(id: string) {
+        return new Guild(this, id)
     }
 
     get middleware(): Middleware<M> {
@@ -102,7 +111,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param role_id 角色id
      */
     async getChannelPermissionOfRole(channel_id: string, role_id: string) {
-        return this.permissionService.getChannelRolePermission(channel_id, role_id)
+        return this.channel(channel_id).rolePermission(role_id)
     }
 
     /**
@@ -112,14 +121,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param message_id
      */
     async setChannelAnnounce(guild_id: string, channel_id: string, message_id: string) {
-        const { data: result } = await this.request.post<{
-            message_id: string
-            channel_id: string
-        }, AxiosResponse<Announce>>(`/guilds/${guild_id}/announces`, {
-            message_id,
-            channel_id
-        })
-        return result
+        return this.guild(guild_id).announce(channel_id, message_id)
     }
 
     /**
@@ -129,8 +131,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param permission
      */
     async updateChannelPermissionOfRole(channel_id: string, role_id: string, permission: UpdatePermissionParams) {
-        const result = await this.request.put(`/channels/${channel_id}/roles/${role_id}/permissions`, permission)
-        return result.status === 204
+        return this.channel(channel_id).updateRolePermission(role_id, permission)
     }
 
     /**
@@ -139,8 +140,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param member_id
      */
     async getChannelMemberPermission(channel_id: string, member_id: string) {
-        const { data: result } = await this.request.get<ChannelMemberPermissions>(`/channels/${channel_id}/members/${member_id}/permissions`)
-        return result
+        return this.channel(channel_id).memberPermission(member_id)
     }
 
     /**
@@ -150,8 +150,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param permission
      */
     async updateChannelMemberPermission(channel_id: string, member_id: string, permission: UpdatePermissionParams) {
-        const result = await this.request.put(`/channels/${channel_id}/members/${member_id}/permissions`, permission)
-        return result.status === 204
+        return this.channel(channel_id).updateMemberPermission(member_id, permission)
     }
 
     /**
@@ -159,8 +158,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param channel_id
      */
     async getChannelPins(channel_id: string): Promise<string[]> {
-        const { data: { message_ids = [] } = {} } = await this.request.get(`/channels/${channel_id}/pins`)
-        return message_ids
+        return this.channel(channel_id).pins()
     }
 
     /**
@@ -169,8 +167,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param message_id
      */
     async pinChannelMessage(channel_id: string, message_id: string) {
-        const { data: result } = await this.request.post<PinsMessage>(`/channels/${channel_id}/pins/${message_id}`)
-        return result
+        return this.channel(channel_id).pin(message_id)
     }
 
     /**
@@ -179,8 +176,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param message_id
      */
     async unPinChannelMessage(channel_id: string, message_id: string) {
-        const result = await this.request.delete(`/channels/${channel_id}/pins/${message_id}`)
-        return result.status === 204
+        return this.channel(channel_id).unpin(message_id)
     }
 
     /**
@@ -189,8 +185,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param channelInfo
      */
     async createChannel(guild_id: string, channelInfo: Omit<Channel.Info, 'id'>) {
-        const { data: result } = await this.request.post<Omit<Channel.Info, 'id'>, AxiosResponse<Channel.Info>>(`/guilds/${guild_id}/channels`, channelInfo)
-        return result
+        return this.guild(guild_id).createChannel(channelInfo)
     }
 
     /**
@@ -199,8 +194,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param updateInfo
      */
     async updateChannel(channel_id: string, updateInfo: ChannelUpdateInfo) {
-        const { data: result } = await this.request.patch<ChannelUpdateInfo, AxiosResponse<Channel.Info>>(`/channels/${channel_id}`, updateInfo)
-        return result
+        return this.channel(channel_id).update(updateInfo)
     }
 
     /**
@@ -208,8 +202,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param channel_id
      */
     async deleteChannel(channel_id: string) {
-        const result = await this.request.delete(`/channels/${channel_id}`)
-        return result.status === 200
+        return this.channel(channel_id).delete()
     }
 
     /**
@@ -217,8 +210,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param guild_id
      */
     async getGuildRoles(guild_id: string) {
-        const { data: { roles = [] } = {} } = await this.request.get<{ roles: Guild.Role[] }>(`/guilds/${guild_id}/roles`)
-        return roles
+        return this.guild(guild_id).roles()
     }
 
     /**
@@ -227,10 +219,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param role
      */
     async creatGuildRole(guild_id: string, role: RoleCreateParam) {
-        const { data: result } = await this.request.post<RoleCreateParam, AxiosResponse<{
-            role: Guild.Role
-        }>>(`/guilds/${guild_id}/roles`, role)
-        return result.role
+        return this.guild(guild_id).createRole(role)
     }
 
     /**
@@ -240,19 +229,15 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param updateInfo
      */
     async updateGuildRole(guild_id: string, role_id: string, updateInfo: RoleUpdateParam) {
-        const { data: result } = await this.request.patch<RoleUpdateParam, AxiosResponse<{
-            role: Guild.Role
-        }>>(`/guilds/${guild_id}/roles/${role_id}`, updateInfo)
-        return result.role
+        return this.guild(guild_id).updateRole(role_id, updateInfo)
     }
 
     /**
      * 删除频道角色
      * @param role_id
      */
-    async deleteGuildRole(role_id: string) {
-        const result = await this.request.delete(`/guilds/{guild_id}/roles/${role_id}`)
-        return result.status === 204
+    async deleteGuildRole(guild_id: string, role_id: string) {
+        return this.guild(guild_id).deleteRole(role_id)
     }
 
     /**
@@ -260,10 +245,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param guild_id
      */
     async getGuildAccessApis(guild_id: string) {
-        const { data: result } = await this.request.get<{
-            apis: ApiPermissionDemand[]
-        }>(`/guilds/${guild_id}/api_permission`)
-        return result.apis || []
+        return this.guild(guild_id).accessApis()
     }
 
     /**
@@ -274,16 +256,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param desc
      */
     async applyGuildAccess(guild_id: string, channel_id: string, apiInfo: ApiBaseInfo, desc?: string) {
-        const { data: result } = await this.request.post<{
-            channel_id: string
-            api_identify: ApiBaseInfo
-            desc: string
-        }, AxiosResponse<ApiPermissionDemand>>(`/guilds/${guild_id}/api_permission/demand`, {
-            channel_id,
-            api_identify: apiInfo,
-            desc,
-        })
-        return result
+        return this.guild(guild_id).applyAccess(channel_id, apiInfo, desc)
     }
 
     /**
@@ -291,7 +264,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param guild_id
      */
     async unMuteGuild(guild_id: string) {
-        return this.muteGuild(guild_id, 0, 0)
+        return this.guild(guild_id).unmute()
     }
 
     /**
@@ -301,12 +274,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param end_time
      */
     async muteGuild(guild_id: string, seconds: number, end_time?: number) {
-        const result = await this.request.put(`/guilds/${guild_id}/mute`, {
-            mute_seconds: `${seconds}`,
-            mute_end_timestamp: `${end_time}`
-        })
-        return result.status === 204
-
+        return this.guild(guild_id).mute(seconds, end_time)
     }
 
     /**
@@ -315,7 +283,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param member_ids
      */
     async unMuteGuildMembers(guild_id: string, member_ids: string[]) {
-        return this.muteGuildMembers(guild_id, member_ids, 0, 0)
+        return this.guild(guild_id).unmuteMembers(member_ids)
     }
 
     /**
@@ -326,17 +294,11 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param end_time
      */
     async muteGuildMembers(guild_id: string, member_ids: string[], seconds: number, end_time?: number) {
-        const result = await this.request.put(`/guilds/${guild_id}/mute`, {
-            mute_seconds: `${seconds}`,
-            mute_end_timestamp: `${end_time}`,
-            user_ids: member_ids
-        })
-        return result.status === 200
+        return this.guild(guild_id).muteMembers(member_ids, seconds, end_time)
     }
 
     async addGuildMemberRoles(guild_id: string, channel_id: string, member_id: string, role_id: string) {
-        const result = await this.request.put(`/guilds/${guild_id}/members/${member_id}/roles/${role_id}`, { id: channel_id })
-        return result.status === 204
+        return this.guild(guild_id).addMemberRole(channel_id, member_id, role_id)
     }
 
     /**
@@ -347,8 +309,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param role_id
      */
     async removeGuildMemberRoles(guild_id: string, channel_id: string, member_id: string, role_id: string) {
-        const result = await this.request.delete(`/guilds/${guild_id}/members/${member_id}/roles/${role_id}`, { data: { id: channel_id } })
-        return result.status === 204
+        return this.guild(guild_id).removeMemberRole(channel_id, member_id, role_id)
     }
 
     /**
@@ -359,13 +320,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param blacklist
      */
     async kickGuildMember(guild_id: string, member_id: string, clean: -1 | 0 | 3 | 7 | 15 | 30 = 0, blacklist?: boolean) {
-        const result = await this.request.delete(`/guilds/${guild_id}/members/${member_id}`, {
-            data: {
-                add_blacklist: blacklist,
-                delete_message_days: clean
-            }
-        })
-        return result.status === 204
+        return this.guild(guild_id).kick(member_id, clean, blacklist)
     }
 
     /**
@@ -374,7 +329,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param member_id
      */
     async unMuteGuildMember(guild_id: string, member_id: string) {
-        return this.muteGuildMember(guild_id, member_id, 0, 0)
+        return this.guild(guild_id).unmuteMember(member_id)
     }
 
     /**
@@ -385,37 +340,14 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param end_time
      */
     async muteGuildMember(guild_id: string, member_id: string, seconds: number, end_time?: number) {
-        const result = await this.request.put(`/guilds/${guild_id}/members/${member_id}/mute`, {
-            mute_seconds: `${seconds}`,
-            mute_end_timestamp: `${end_time}`
-        })
-        return result.status === 204
+        return this.guild(guild_id).muteMember(member_id, seconds, end_time)
     }
 
     /**
      * 获取频道列表
      */
     async getGuildList() {
-        const _getGuildList = async (after: string = undefined) => {
-            const res = await this.request.get('/users/@me/guilds', {
-                params: {
-                    after
-                }
-            }).catch(() => ({ data: [] }))// 私域不支持获取频道列表，做个兼容
-            if (!res.data?.length) return []
-            const result = (res.data || []).map(g => {
-                const { id: guild_id, name: guild_name, joined_at, ...guild } = g
-                return {
-                    guild_id,
-                    guild_name,
-                    join_time: new Date(joined_at).getTime() / 1000,
-                    ...guild
-                }
-            })
-            const last = result[result.length - 1]
-            return [...result, ...await _getGuildList(last.guild_id)]
-        }
-        return await _getGuildList() as Guild.ApiInfo[]
+        return this.guildService.getList()
     }
 
     /**
@@ -423,13 +355,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param guild_id
      */
     async getGuildInfo(guild_id: string): Promise<Guild.ApiInfo> {
-        const { data: { id: _, name: guild_name, joined_at, ...guild } } = await this.request.get(`/guilds/${guild_id}`)
-        return {
-            guild_id,
-            guild_name,
-            join_time: new Date(joined_at).getTime() / 1000,
-            ...guild
-        }
+        return this.guild(guild_id).info()
     }
 
     /**
@@ -438,36 +364,14 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param message_id {string} 消息id
      */
     async getGuildMessage(channel_id: string, message_id: string): Promise<GuildMessageEvent> {
-        const { data: payload } = await this.request.get(`/channels/${channel_id}/messages/${message_id}`)
-        return this.processPayload(payload.id, `message.guild`, payload) as GuildMessageEvent
+        return this.channel(channel_id).getMessage(message_id) as Promise<GuildMessageEvent>
     }
     /**
      * 获取频道成员列表
      * @param guild_id
      */
     async getGuildMemberList(guild_id: string) {
-        const _getGuildMemberList = async (after: string = undefined) => {
-            const res = await this.request.get(`/guilds/${guild_id}/members`, {
-                params: {
-                    after,
-                    limit: 100
-                }
-            }).catch(() => ({ data: [] }))// 公域没有权限，做个兼容
-            if (!res.data?.length) return []
-            const result = (res.data || []).map(m => {
-                const { user: { id: member_id, ...member }, roles, joined_at, nick } = m
-                return {
-                    member_id,
-                    card: nick,
-                    roles,
-                    ...member,
-                    join_time: new Date(joined_at).getTime() / 1000,
-                }
-            })
-            const last = result[result.length - 1]
-            return [...result, ...await _getGuildMemberList(last.member_id)]
-        }
-        return await _getGuildMemberList() as GuildMember.ApiInfo[]
+        return this.guild(guild_id).members()
     }
 
     /**
@@ -476,21 +380,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param member_id
      */
     async getGuildMemberInfo(guild_id: string, member_id: string) {
-        const {
-            data: {
-                user: { id: _, ...member },
-                roles,
-                joined_at,
-                nick
-            }
-        } = await this.request.get(`/guilds/${guild_id}/members/${member_id}`)
-        return {
-            member_id,
-            card: nick,
-            roles,
-            ...member,
-            join_time: new Date(joined_at).getTime() / 1000,
-        } as GuildMember.ApiInfo
+        return this.guild(guild_id).member(member_id)
     }
 
     /**
@@ -509,28 +399,30 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
         throw UnsupportedMethodError
     }
     /** 获取群基本信息（白名单能力） */
-    async getGroupInfo(...args: Parameters<GroupService['getInfo']>) {
-        return this.groupService.getInfo(...args)
+    async getGroupInfo(group_id: string) {
+        return this.group(group_id).info()
     }
     /** 获取机器人在群内的状态（白名单能力） */
-    async getGroupBotState(...args: Parameters<GroupService['getBotState']>) {
-        return this.groupService.getBotState(...args)
+    async getGroupBotState(group_id: string) {
+        return this.group(group_id).botState()
     }
     /** 拉取入群申请列表 */
-    async getGroupJoinRequests(...args: Parameters<GroupService['getJoinRequests']>) {
-        return this.groupService.getJoinRequests(...args)
+    async getGroupJoinRequests(group_id: string, options?: Parameters<Group['joinRequests']>[0]) {
+        return this.group(group_id).joinRequests(options)
     }
     /** 审批入群申请 */
     async approveGroupJoinRequest(...args: Parameters<GroupService['approveJoinRequest']>) {
-        return this.groupService.approveJoinRequest(...args)
+        const [group_id, memberOpenid, options] = args
+        return this.group(group_id).approveJoin(memberOpenid, options)
     }
     /** 查询群禁言状态 */
-    async getGroupMuteSetting(...args: Parameters<GroupService['getMuteSetting']>) {
-        return this.groupService.getMuteSetting(...args)
+    async getGroupMuteSetting(group_id: string) {
+        return this.group(group_id).muteSetting()
     }
     /** 设置或解除群成员禁言 */
     async setGroupMemberMute(...args: Parameters<GroupService['setMemberMute']>) {
-        return this.groupService.setMemberMute(...args)
+        const [group_id, members] = args
+        return this.group(group_id).muteMembers(members)
     }
     /** 查询入群自动审批策略 */
     async getGroupJoinApprovalStrategies(...args: Parameters<GroupService['getJoinApprovalStrategies']>) {
@@ -608,7 +500,28 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param source
      */
     async sendPrivateMessage(user_id: string, message: Sendable, source?: Quotable) {
-        return this.messageService.sendPrivateMessage(user_id, message, source);
+        return this.user(user_id).send(message, source);
+    }
+    /**
+     * 发送一截单聊流式消息
+     */
+    async sendPrivateStreamMessage(...args: Parameters<MessageService['sendPrivateStreamMessage']>) {
+        const [user_id, payload] = args
+        return this.user(user_id).sendStreamMessage(payload)
+    }
+    /**
+     * 创建单聊流式会话
+     */
+    createPrivateStream(...args: Parameters<MessageService['createPrivateStream']>) {
+        const [user_id, options] = args
+        return this.user(user_id).createStream(options)
+    }
+    /**
+     * 把文本流写成单聊流式消息
+     */
+    async sendPrivateStream(...args: Parameters<MessageService['sendPrivateStream']>) {
+        const [user_id, chunks, options] = args
+        return this.user(user_id).sendStream(chunks, options)
     }
     /**
      * 撤回私聊消息
@@ -616,8 +529,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param message_id
      */
     async recallPrivateMessage(user_id: string, message_id: string) {
-        const result = await this.request.delete(`/v2/users/${user_id}/messages/${message_id}`)
-        return result.status === 200
+        return this.user(user_id).recall(message_id)
     }
     /**
      * 发送群消息
@@ -626,7 +538,20 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param source
      */
     async sendGroupMessage(group_id: string, message: Sendable, source?: Quotable) {
-        return this.messageService.sendGroupMessage(group_id, message, source);
+        return this.group(group_id).send(message, source);
+    }
+    /**
+     * 上传群聊/单聊富媒体。本地文件走官方分片上传，公网 URL 走平台转存。
+     */
+    async uploadMedia(
+        targetId: string,
+        targetType: 'user' | 'group',
+        fileData: string | Buffer,
+        options: Omit<Parameters<FileProcessor['uploadMedia']>[1], 'targetId' | 'targetType'> = {}
+    ) {
+        return targetType === 'group'
+            ? this.group(targetId).upload(fileData, options)
+            : this.user(targetId).upload(fileData, options)
     }
     /**
      * 撤回群消息
@@ -634,20 +559,20 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param message_id
      */
     async recallGroupMessage(group_id: string, message_id: string) {
-        return this.messageService.recallGroupMessage(group_id, message_id);
+        return this.group(group_id).recall(message_id);
     }
     /**
      * 获取子频道列表
      */
     async getChannelList(guild_id: string) {
-        return this.channelService.getList(guild_id);
+        return this.guild(guild_id).channels();
     }
     /**
      * 获取子频道信息
      * @param channel_id
      */
     async getChannelInfo(channel_id: string) {
-        return this.channelService.getInfo(channel_id);
+        return this.channel(channel_id).info();
     }
 
     /**
@@ -667,7 +592,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param source
      */
     async sendDirectMessage(guild_id: string, message: Sendable, source?: Quotable) {
-        return this.messageService.sendDirectMessage(guild_id, message, source);
+        return this.direct(guild_id).send(message, source);
     }
 
     /**
@@ -676,7 +601,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param message_id
      */
     async getDirectMessage(guild_id: string, message_id: string) {
-        return this.messageService.getDirectMessage(guild_id, message_id);
+        return this.direct(guild_id).getMessage(message_id);
     }
     /**
      * 撤回频道私信
@@ -685,7 +610,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param hidetip
      */
     async recallDirectMessage(guild_id: string, message_id: string, hidetip?: boolean) {
-        return this.messageService.recallDirectMessage(guild_id, message_id, hidetip);
+        return this.direct(guild_id).recall(message_id, hidetip);
     }
 
     /**
@@ -695,7 +620,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param source
      */
     async sendGuildMessage(channel_id: string, message: Sendable, source?: Quotable) {
-        return this.messageService.sendGuildMessage(channel_id, message, source);
+        return this.channel(channel_id).send(message, source);
     }
 
     /**
@@ -705,7 +630,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param hidetip
      */
     async recallGuildMessage(channel_id: string, message_id: string, hidetip?: boolean) {
-        return this.messageService.recallGuildMessage(channel_id, message_id, hidetip);
+        return this.channel(channel_id).recall(message_id, hidetip);
     }
 
     /**
@@ -716,7 +641,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param id {`${number}`} 表情id
      */
     async addGuildMessageReaction(channel_id: string, message_id: string, type: EmojiType, id: `${number}`) {
-        return this.reactionService.addGuildMessageReaction(channel_id, message_id, type, id);
+        return this.channel(channel_id).react(message_id, type, id);
     }
 
     /**
@@ -727,7 +652,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param id {`${number}`} 表情id
      */
     async deleteGuildMessageReaction(channel_id: string, message_id: string, type: EmojiType, id: `${number}`) {
-        return this.reactionService.deleteGuildMessageReaction(channel_id, message_id, type, id);
+        return this.channel(channel_id).deleteReaction(message_id, type, id);
     }
 
     /**
@@ -738,19 +663,14 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param id {`${number}`} 表情id
      */
     async getGuildMessageReactionMembers(channel_id: string, message_id: string, type: EmojiType, id: `${number}`) {
-        const users = await this.reactionService.getGuildMessageReactionMembers(channel_id, message_id, type, id);
-        return users.map(user => ({
-            user_id: user.id,
-            user_name: user.username,
-            avatar: user.avatar
-        }));
+        return this.channel(channel_id).reactionMembers(message_id, type, id);
     }
     /** 获取频道日程
      * @param channel_id {string}
      * @param since {number}
      */
     async getChannelSchedules(channel_id: string, since?: number) {
-        return this.scheduleService.getChannelSchedules(channel_id, since);
+        return this.channel(channel_id).schedules(since);
     }
     /**
      * 获取日程详情
@@ -758,7 +678,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param schedule_id
      */
     async getChannelScheduleInfo(channel_id: string, schedule_id: string) {
-        return this.scheduleService.getChannelSchedule(channel_id, schedule_id);
+        return this.channel(channel_id).schedule(schedule_id);
     }
     /**
      * 创建日程
@@ -766,8 +686,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param schedule
      */
     async createChannelSchedule(channel_id: string, schedule: Exclude<ScheduleInfo, 'id'>): Promise<ScheduleInfo> {
-        const { data } = await this.request.post(`/channels/${channel_id}/schedules`, schedule)
-        return data
+        return this.channel(channel_id).createSchedule(schedule)
     }
 
     /**
@@ -777,8 +696,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param schedule
      */
     async updateChannelSchedule(channel_id: string, schedule_id: string, schedule: Exclude<ScheduleInfo, 'id'>) {
-        const { data } = await this.request.patch(`/channels/${channel_id}/schedules/${schedule_id}`, schedule)
-        return data
+        return this.channel(channel_id).updateSchedule(schedule_id, schedule)
     }
 
     /**
@@ -787,8 +705,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param schedule_id
      */
     async deleteChannelSchedule(channel_id: string, schedule_id: string) {
-        const { data } = await this.request.delete(`/channels/${channel_id}/schedules/${schedule_id}`)
-        return data
+        return this.channel(channel_id).deleteSchedule(schedule_id)
     }
 
     /**
@@ -797,8 +714,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param audio_control
      */
     async controlChannelAudio(channel_id: string, audio_control: AudioControl) {
-        const result = await this.request.post(`/channels/${channel_id}/audio`, audio_control)
-        return result.status === 200
+        return this.channel(channel_id).controlAudio(audio_control)
     }
 
     /**
@@ -806,8 +722,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param channel_id
      */
     async setOnlineMic(channel_id: string) {
-        const result = await this.request.put(`/channels/${channel_id}/mic`)
-        return result.status === 200
+        return this.channel(channel_id).onlineMic()
     }
 
     /**
@@ -815,8 +730,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param channel_id
      */
     async setOfflineMic(channel_id: string) {
-        const result = await this.request.delete(`/channels/${channel_id}/mic`)
-        return result.status === 204
+        return this.channel(channel_id).offlineMic()
     }
 
     /**
@@ -824,8 +738,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param channel_id
      */
     async getChannelThreads(channel_id: string): Promise<Thread[]> {
-        const { data } = await this.request.get(`/channels/${channel_id}/threads`)
-        return data
+        return this.channel(channel_id).threads()
     }
 
     /**
@@ -834,8 +747,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param thread_id
      */
     async getChannelThreadInfo(channel_id: string, thread_id: string) {
-        const { data } = await this.request.get(`/channels/${channel_id}/threads/${thread_id}`)
-        return data
+        return this.channel(channel_id).thread(thread_id)
     }
     /**
      * 创建频道帖子
@@ -845,12 +757,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param format {1|2|3|4}
      */
     async publishThread(channel_id: string, title: string, content: string, format: 1 | 2 | 3 | 4 = 3): Promise<ThreadInfo> {
-        const { data } = await this.request.post(`/channels/${channel_id}/threads`, {
-            title,
-            content,
-            format
-        })
-        return data
+        return this.channel(channel_id).publishThread(title, content, format)
     }
 
     /**
@@ -859,8 +766,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param thread_id
      */
     async deleteThread(channel_id: string, thread_id: string) {
-        const result = await this.request.delete(`/channels/${channel_id}/threads/${thread_id}`)
-        return result.status === 204
+        return this.channel(channel_id).deleteThread(thread_id)
     }
 
     /**
@@ -869,8 +775,7 @@ export class Bot<T extends ReceiverMode = ReceiverMode, M extends ApplicationPla
      * @param code {number}
      */
     async replyAction(action_id: string, code: ActionNoticeEvent.ReplyCode = 0) {
-        const result = await this.request.put(`/interactions/${action_id}`, { code })
-        return result.status === 200
+        return this.botService.replyAction(action_id, code)
     }
 
     async start() {

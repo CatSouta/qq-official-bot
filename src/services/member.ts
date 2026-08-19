@@ -104,6 +104,18 @@ export class MemberService {
         return result.status === 204
     }
 
+    async muteGuildMember(guildId: string, memberId: string, seconds: number, endTime?: number): Promise<boolean> {
+        const result = await this.request.put(`/guilds/${guildId}/members/${memberId}/mute`, {
+            mute_seconds: `${seconds}`,
+            mute_end_timestamp: `${endTime || 0}`
+        })
+        return result.status === 204
+    }
+
+    async unmuteGuildMember(guildId: string, memberId: string): Promise<boolean> {
+        return this.muteGuildMember(guildId, memberId, 0, 0)
+    }
+
     /**
      * 私有方法：获取频道成员列表的实现
      */

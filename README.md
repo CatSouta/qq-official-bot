@@ -129,8 +129,8 @@ bot.on('message.guild', async (event) => {
 })
 
 bot.on('message.group', async (event) => {
-    // 群消息回复
     await event.reply('Hello, Group!')
+    await event.group.send('也可以直接对这个群发')
 })
 
 bot.on('message.private', async (event) => {
@@ -139,6 +139,11 @@ bot.on('message.private', async (event) => {
 })
 
 // 主动发送消息
+await bot.channel(channel_id).send('Hello from bot!')
+await bot.group(group_id).send('Hello, Group!')
+await bot.user(user_id).send('Hello, User!')
+
+// 旧方法名仍可用
 await bot.sendGuildMessage(channel_id, 'Hello from bot!')
 await bot.sendGroupMessage(group_id, 'Hello, Group!')
 await bot.sendPrivateMessage(user_id, 'Hello, User!')
@@ -173,7 +178,7 @@ await bot.updateChannelMemberPermission(channel_id, user_id, { add: 'permission'
 |---------|---------|----------|
 | **GuildService** | 频道管理 | `getList()`, `getInfo()`, `getRoles()` |
 | **ChannelService** | 子频道管理 | `getList()`, `getInfo()`, `create()`, `update()` |
-| **MessageService** | 消息处理 | `sendGuildMessage()`, `recallGuildMessage()`, `sendGroupMessage()`, `sendPrivateMessage()` |
+| **MessageService** | 消息处理 | `sendGuildMessage()`, `sendGroupMessage()`, `sendPrivateMessage()`, `createPrivateStream()` |
 | **MemberService** | 成员管理 | `getGuildMemberList()`, `muteMembers()`, `kickMember()` |
 | **PermissionService** | 权限管理 | `getChannelMemberPermission()`, `updateChannelMemberPermission()` |
 | **ReactionService** | 表态管理 | `addGuildMessageReaction()`, `deleteGuildMessageReaction()` |
@@ -207,9 +212,11 @@ await bot.updateChannelMemberPermission(channel_id, user_id, { add: 'permission'
 
 | 功能 | 方法 | 参数 | 返回值 |
 |-----|------|------|--------|
-| 发送频道消息 | `sendGuildMessage(channel_id, content)` | `channel_id: string, content: Sendable` | `SendResult` |
-| 发送私聊消息 | `sendPrivateMessage(user_id, content)` | `user_id: string, content: Sendable` | `SendResult` |
-| 发送群消息 | `sendGroupMessage(group_id, content)` | `group_id: string, content: Sendable` | `SendResult` |
+| 发送频道消息 | `bot.channel(id).send(content)` | `channel_id: string, content: Sendable` | `SendResult` |
+| 发送私聊消息 | `bot.user(id).send(content)` | `user_id: string, content: Sendable` | `SendResult` |
+| 流式发送私聊 | `bot.user(id).createStream(options?)` | `user_id: string, options?: CreatePrivateStreamOptions` | `PrivateMessageStream` |
+| 发送群消息 | `bot.group(id).send(content)` | `group_id: string, content: Sendable` | `SendResult` |
+| 发送频道私信 | `bot.direct(guildId).send(content)` | `guild_id: string, content: Sendable` | `SendResult` |
 | 撤回频道消息 | `recallGuildMessage(channel_id, message_id)` | `channel_id: string, message_id: string` | `boolean` |
 | 撤回群消息 | `recallGroupMessage(group_id, message_id)` | `group_id: string, message_id: string` | `boolean` |
 | 撤回私聊消息 | `recallPrivateMessage(user_id, message_id)` | `user_id: string, message_id: string` | `boolean` |
@@ -358,4 +365,4 @@ await bot.sendGroupMessage(group_id, [
 ])
 ```
 
-> `messageBuilder` 为内部构建器，由 `MessageService` 在发送时自动使用。业务侧推荐通过 `segment` 工厂函数组装 `Sendable` 消息。
+> 业务侧用 `segment` 组装 `Sendable`。`MessageBuilder` 只在 `MessageService` 内部使用。

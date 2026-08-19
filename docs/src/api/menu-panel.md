@@ -144,6 +144,18 @@ console.log(result.version)
 
 指令面板以面板形式展示指令或链接，支持按 `c2c`、`group`、`channel`、`dm` 场景生效。一个机器人最多 20 个面板，每个面板最多 20 个元素。
 
+推荐挂到会话实体上：
+
+```typescript
+await bot.group(group_id).createPanel(panel.build([
+    panel.command('帮助'),
+]))
+await bot.group(group_id).bindPanel(panel_id)
+await bot.user(user_id).createPanel(panel.build([
+    panel.command('签到'),
+]), 'specific')
+```
+
 | 场景 | `scope` | 作用范围 |
 |------|---------|----------|
 | 单聊 | `c2c` | `all` 或 `specific`（指定用户） |

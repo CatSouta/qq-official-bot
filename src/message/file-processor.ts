@@ -1,56 +1,183 @@
 /**
- * 文件处理器 - 专门负责文件上传和处理
+ * 文件处理器 - URL 上传与官方分片上传
+ * @see https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/rich-media.html
  */
-import * as fs from 'node:fs';
-import { getFileBase64 } from "@/utils/file";
-import {ReceiverMode} from "@/receivers/base";
-import {ApplicationPlatform} from "@/receivers/middleware";
-import { AxiosInstance } from "axios";
+import axios, { AxiosInstance } from 'axios';
+import { md5, md5_10m, sha1 } from '@/utils/crypto';
+import { getFileBuffer, isHttpUrl } from '@/utils/file';
+import type { FilePayload } from './builder';
+
+export type MediaFileType = 1 | 2 | 3 | 4;
+export type UploadTargetType = 'user' | 'group';
 
 export interface FileUploadResult {
-  file_info: any;
-  url?: string;
-  file_id?: string;
+  file_uuid: string;
+  file_info: string;
+  ttl: number;
+  id?: string;
+  raw_url?: string;
 }
 
 export interface UploadOptions {
   targetId: string;
-  targetType: 'user' | 'group';
-  fileType: 1 | 2 | 3; // 1: image, 2: video, 3: audio
+  targetType: UploadTargetType;
+  fileType?: MediaFileType;
+  fileName?: string;
   sendMessage?: boolean;
+  /** 即使传入 http(s) URL 也先下载再走分片上传 */
+  forceChunked?: boolean;
+}
+
+export interface UploadPrepareParams {
+  file_type: MediaFileType;
+  file_size: string;
+  file_name: string;
+  md5: string;
+  sha1: string;
+  md5_10m: string;
+}
+
+export interface UploadPart {
+  index: number;
+  presigned_url: string;
+  block_size: string;
+}
+
+export interface UploadConfig {
+  concurrency: number;
+  retry_timeout: number;
+  retry_delay: number;
+}
+
+export interface UploadPrepareResult {
+  upload_id: string;
+  block_size: string;
+  parts: UploadPart[];
+  upload_config?: UploadConfig;
+}
+
+export interface FinishUploadPartParams {
+  upload_id: string;
+  part_index: number;
+  block_size: string;
+  md5: string;
+}
+
+const DEFAULT_FILE_NAMES: Record<MediaFileType, string> = {
+  1: 'image.png',
+  2: 'video.mp4',
+  3: 'audio.silk',
+  4: 'file.bin',
+};
+
+const FILE_TYPE_BY_EXT: Record<string, MediaFileType> = {
+  png: 1, jpg: 1, jpeg: 1, gif: 1, webp: 1, bmp: 1,
+  mp4: 2,
+  silk: 3, mp3: 3, wav: 3, ogg: 3,
+};
+
+const PUT_CLIENT = axios.create({
+  timeout: 120_000,
+  maxBodyLength: Infinity,
+  maxContentLength: Infinity,
+});
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function toNumber(value: string | number | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+export function inferMediaFileType(fileName?: string): MediaFileType | undefined {
+  if (!fileName) return undefined;
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  return ext ? FILE_TYPE_BY_EXT[ext] : undefined;
+}
+
+async function withRetry<T>(
+  task: () => Promise<T>,
+  config: UploadConfig
+): Promise<T> {
+  const deadline = Date.now() + config.retry_timeout * 1000;
+  let lastError: unknown;
+  while (Date.now() <= deadline) {
+    try {
+      return await task();
+    } catch (error) {
+      lastError = error;
+      if (Date.now() + config.retry_delay * 1000 > deadline) break;
+      await sleep(config.retry_delay * 1000);
+    }
+  }
+  throw lastError;
+}
+
+async function runWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>
+): Promise<void> {
+  if (items.length === 0) return;
+  const limit = Math.max(1, concurrency);
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const current = items[cursor++];
+      await worker(current);
+    }
+  });
+  await Promise.all(runners);
 }
 
 /**
  * 文件处理器
- * 专门负责文件的上传、处理和管理
+ * 群聊/单聊本地文件走官方分片上传，公网 URL 走平台转存。
  */
-export class FileProcessor<T extends ReceiverMode=ReceiverMode,M extends ApplicationPlatform=ApplicationPlatform> {
+export class FileProcessor {
   constructor(private request: AxiosInstance) {}
 
   /**
-   * 上传媒体文件
+   * 上传媒体文件。本地 / Buffer / Base64 走分片上传，http(s) 走 URL 转存。
    */
   async uploadMedia(
     fileData: string | Buffer,
     options: UploadOptions
   ): Promise<FileUploadResult> {
-    // 转换文件数据为base64格式
-      const base64Data = await getFileBase64(fileData);
+    options = this.withFileType(options);
+    if (typeof fileData === 'string' && isHttpUrl(fileData) && !options.forceChunked) {
+      return this.uploadByUrl(fileData, options);
+    }
 
-      // 构建上传请求
-      const uploadPayload = {
-        file_type: options.fileType,
-        file_data: base64Data,
-        srv_send_msg: options.sendMessage || false
-      };
+    const resolved = await getFileBuffer(fileData);
+    return this.uploadByChunks(resolved.buffer, {
+      ...options,
+      fileName: options.fileName || resolved.fileName,
+    });
+  }
 
-      // 发送上传请求
-      const { data: result } = await this.request.post(
-        `/v2/${options.targetType}s/${options.targetId}/files`,
-        uploadPayload
-      );
+  /**
+   * 供发消息链路使用：已有 URL 则 URL 上传，否则分片上传。
+   */
+  async uploadForMessage(payload: FilePayload, options: Omit<UploadOptions, 'fileType'>): Promise<FileUploadResult> {
+    const fileType = (payload.file_type ?? 1) as MediaFileType;
+    if (payload.url && isHttpUrl(payload.url)) {
+      return this.uploadByUrl(payload.url, { ...options, fileType, fileName: payload.file_name });
+    }
 
-      return result;
+    const resolved = payload.file != null ? await getFileBuffer(payload.file) : undefined;
+    const buffer = payload.file_buffer ?? resolved?.buffer;
+    if (!buffer?.length) {
+      throw new Error('缺少可上传的文件数据');
+    }
+
+    return this.uploadByChunks(buffer, {
+      ...options,
+      fileType,
+      fileName: payload.file_name || resolved?.fileName,
+    });
   }
 
   /**
@@ -59,80 +186,135 @@ export class FileProcessor<T extends ReceiverMode=ReceiverMode,M extends Applica
   async uploadMultipleFiles(
     files: Array<{
       data: string | Buffer;
-      type: 1 | 2 | 3;
+      type: MediaFileType;
+      fileName?: string;
     }>,
-    options: Omit<UploadOptions, 'fileType'>
+    options: Omit<UploadOptions, 'fileType' | 'fileName'>
   ): Promise<FileUploadResult[]> {
-    const results = [];
-
+    const results: FileUploadResult[] = [];
     for (const file of files) {
-      const result = await this.uploadMedia(file.data, {
-          ...options,
-          fileType: file.type
-        });
-        results.push(result);
+      results.push(await this.uploadMedia(file.data, {
+        ...options,
+        fileType: file.type,
+        fileName: file.fileName,
+      }));
     }
-
     return results;
   }
 
-  /**
-   * 检查文件类型
-   */
-  validateFileType(fileData: string | Buffer, expectedType: 1 | 2 | 3): boolean {
-    // 这里可以添加文件类型验证逻辑
-    // 例如检查文件头、扩展名等
-    return true;
+  /** URL 转存上传 */
+  async uploadByUrl(url: string, options: UploadOptions): Promise<FileUploadResult> {
+    options = this.withFileType(options);
+    const { data } = await this.request.post<FileUploadResult>(
+      this.filesPath(options),
+      {
+        file_type: options.fileType,
+        url,
+        srv_send_msg: options.sendMessage || false,
+        file_name: options.fileName,
+      },
+      { timeout: 30_000 }
+    );
+    return data;
   }
 
   /**
-   * 获取文件大小
+   * 官方分片上传：预上传 → PUT 分片 → part_finish → 合并拿到 file_info。
    */
-  getFileSize(fileData: string | Buffer): number {
-    if (Buffer.isBuffer(fileData)) {
-      return fileData.length;
-    }
+  async uploadByChunks(buffer: Buffer, options: UploadOptions): Promise<FileUploadResult> {
+    options = this.withFileType(options);
+    const fileName = options.fileName || DEFAULT_FILE_NAMES[options.fileType!];
+    const prepared = await this.prepareUpload(options.targetType, options.targetId, {
+      file_type: options.fileType!,
+      file_size: String(buffer.length),
+      file_name: fileName,
+      md5: md5(buffer),
+      sha1: sha1(buffer),
+      md5_10m: md5_10m(buffer),
+    });
 
-    if (typeof fileData === 'string') {
-      if (fileData.startsWith('base64://')) {
-        return Buffer.from(fileData.slice(9), 'base64').length;
-      } else if (fileData.startsWith('data:')) {
-        const base64Data = fileData.split(',')[1];
-        return Buffer.from(base64Data, 'base64').length;
-      }
-    }
+    const uploadConfig: UploadConfig = {
+      concurrency: Math.max(1, prepared.upload_config?.concurrency ?? 1),
+      retry_timeout: toNumber(prepared.upload_config?.retry_timeout, 300),
+      retry_delay: toNumber(prepared.upload_config?.retry_delay, 1),
+    };
+    const blockSize = toNumber(prepared.block_size, 5 * 1024 * 1024);
 
-    return 0;
+    await runWithConcurrency(prepared.parts ?? [], uploadConfig.concurrency, async (part) => {
+      const partSize = toNumber(part.block_size, blockSize);
+      const start = part.index * blockSize;
+      const chunk = buffer.subarray(start, start + partSize);
+      await withRetry(async () => {
+        await PUT_CLIENT.put(part.presigned_url, chunk, {
+          headers: { 'Content-Type': 'application/octet-stream' },
+          transformRequest: [(data) => data],
+        });
+        await this.finishUploadPart(options.targetType, options.targetId, {
+          upload_id: prepared.upload_id,
+          part_index: part.index,
+          block_size: String(chunk.length),
+          md5: md5(chunk),
+        });
+      }, uploadConfig);
+    });
+
+    return this.completeUpload(options, prepared.upload_id, fileName);
   }
 
-  /**
-   * 检查文件大小限制
-   */
-  checkFileSizeLimit(fileData: string | Buffer, maxSize: number = 10 * 1024 * 1024): boolean {
-    const fileSize = this.getFileSize(fileData);
-    return fileSize <= maxSize;
+  /** 预上传，获取 upload_id 与各分片预签名 URL */
+  async prepareUpload(
+    targetType: UploadTargetType,
+    targetId: string,
+    params: UploadPrepareParams
+  ): Promise<UploadPrepareResult> {
+    const { data } = await this.request.post<UploadPrepareResult>(
+      `/v2/${targetType}s/${targetId}/upload_prepare`,
+      params,
+      { timeout: 30_000 }
+    );
+    return data;
   }
 
-  /**
-   * 从URL下载文件
-   */
-  async downloadFromUrl(url: string): Promise<Buffer> {
-    const axios = require('axios');
-      const response = await axios.get(url, {
-        responseType: 'arraybuffer',
-        timeout: 30000,
-        maxContentLength: 10 * 1024 * 1024 // 10MB limit
-      });
-
-      return Buffer.from(response.data);
+  /** 单个分片 PUT 成功后通知服务端 */
+  async finishUploadPart(
+    targetType: UploadTargetType,
+    targetId: string,
+    params: FinishUploadPartParams
+  ): Promise<void> {
+    await this.request.post(
+      `/v2/${targetType}s/${targetId}/upload_part_finish`,
+      params,
+      { timeout: 30_000 }
+    );
   }
 
-  /**
-   * 清理临时文件
-   */
-  async cleanupTempFiles(filePaths: string[]): Promise<void> {
-    for (const filePath of filePaths) {
-      fs.unlinkSync(filePath);
-    }
+  /** 携带 upload_id 调用上传接口完成合并 */
+  async completeUpload(
+    options: UploadOptions,
+    uploadId: string,
+    fileName?: string
+  ): Promise<FileUploadResult> {
+    const { data } = await this.request.post<FileUploadResult>(
+      this.filesPath(options),
+      {
+        file_type: options.fileType!,
+        srv_send_msg: options.sendMessage || false,
+        file_name: fileName || options.fileName,
+        upload_id: uploadId,
+      },
+      { timeout: 30_000 }
+    );
+    return data;
+  }
+
+  private filesPath(options: Pick<UploadOptions, 'targetType' | 'targetId'>): string {
+    return `/v2/${options.targetType}s/${options.targetId}/files`;
+  }
+
+  private withFileType(options: UploadOptions): UploadOptions & { fileType: MediaFileType } {
+    return {
+      ...options,
+      fileType: options.fileType ?? inferMediaFileType(options.fileName) ?? 1,
+    };
   }
 }

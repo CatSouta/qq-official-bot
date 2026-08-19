@@ -102,29 +102,26 @@ interface GuildMember.ApiInfo {
 
 对指定成员进行禁言操作。
 
-**方法名**: `bot.memberService.muteGuildMember(guildId, userId, seconds, endTime?)` / `bot.muteGuildMember(guildId, userId, seconds, endTime?)`
+**方法名**: `bot.guild(guildId).muteMember(userId, seconds, endTime?)` / `bot.muteGuildMember(guildId, userId, seconds, endTime?)`
 
 **参数**:
 | 参数名 | 类型 | 必填 | 描述 |
 |-------|------|------|------|
 | `guildId` | `string` | ✅ | 频道 ID |
 | `userId` | `string` | ✅ | 用户 ID |
-| `seconds` | `string` | ✅ | 禁言时长（秒），传 "0" 表示取消禁言 |
-| `endTime` | `string` | ❌ | 禁言结束时间戳 |
+| `seconds` | `number` | ✅ | 禁言时长（秒），传 `0` 表示取消禁言 |
+| `endTime` | `number` | ❌ | 禁言结束时间戳 |
 
 ```typescript
-// 禁言 10 分钟
-await bot.memberService.muteGuildMember(guild_id, user_id, '600')
-
-// 取消禁言
-await bot.memberService.muteGuildMember(guild_id, user_id, '0')
+await bot.guild(guild_id).muteMember(user_id, 600)
+await bot.guild(guild_id).unmuteMember(user_id)
 ```
 
 ### 移除频道成员
 
 将指定成员移出频道。
 
-**方法名**: `bot.memberService.kickGuildMember(guildId, userId, addBlacklist?, deleteHistoryMsgDays?)` / `bot.kickGuildMember(guildId, userId, addBlacklist?, deleteHistoryMsgDays?)`
+**方法名**: `bot.guild(guildId).kick(userId, clean?, blacklist?)` / `bot.kickGuildMember(guildId, userId, clean?, blacklist?)`
 
 **参数**:
 | 参数名 | 类型 | 必填 | 描述 |
@@ -241,15 +238,16 @@ await bot.guildService.updateRole(guild_id, role_id, {
 
 删除指定的频道角色。
 
-**方法名**: `bot.guildService.deleteRole(roleId)` / `bot.deleteGuildRole(roleId)`
+**方法名**: `bot.guildService.deleteRole(guildId, roleId)` / `bot.deleteGuildRole(guildId, roleId)`
 
 **参数**:
 | 参数名 | 类型 | 必填 | 描述 |
 |-------|------|------|------|
+| `guildId` | `string` | ✅ | 频道 ID |
 | `roleId` | `string` | ✅ | 角色 ID |
 
 ```typescript
-await bot.guildService.deleteRole(role_id)
+await bot.deleteGuildRole(guild_id, role_id)
 ```
 
 ## 🔑 API 权限管理

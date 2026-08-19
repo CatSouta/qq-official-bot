@@ -8,6 +8,7 @@ This file helps AI coding agents contribute safely and quickly in this repositor
 2. Do not hand-edit build outputs in [lib](lib).
 3. Validate changes with:
    - pnpm run compile
+   - pnpm test
    - pnpm run build
 4. If API behavior changed, update matching docs under [docs/src](docs/src).
 
@@ -15,13 +16,13 @@ This file helps AI coding agents contribute safely and quickly in this repositor
 
 - Fast compile check: pnpm run compile
 - Full package build (JS + d.ts): pnpm run build
+- Tests (fake HTTP at message / event / session-entity seams): pnpm test
 - Clean outputs: pnpm run clean
 - Docs local dev: pnpm run docs:dev
 - Docs build: pnpm run docs:build
 
 Notes:
 - The repository has a pnpm lockfile, prefer pnpm commands.
-- The test script is a placeholder and currently not a usable validation path.
 
 ## Architecture Map
 
@@ -55,8 +56,9 @@ Notes:
 
 ## Change Checklist for Agents
 
-1. Changed only [src](src) (unless updating docs or metadata intentionally).
+1. Changed only [src](src) (unless updating docs, tests, or metadata intentionally).
 2. Ran pnpm run compile at minimum.
-3. Ran pnpm run build for release-level confidence.
-4. Updated docs in [docs/src](docs/src) if behavior or interfaces changed.
-5. Confirmed no accidental edits to generated files in [lib](lib).
+3. Ran pnpm test when touching message, events, or session entities.
+4. Ran pnpm run build for release-level confidence.
+5. Updated docs in [docs/src](docs/src) if behavior or interfaces changed.
+6. Confirmed no accidental edits to generated files in [lib](lib).

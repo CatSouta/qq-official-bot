@@ -12,7 +12,7 @@
 
 向指定用户发送私聊消息。
 
-**方法名**: `bot.messageService.sendPrivateMessage(userId, message, source?)` / `bot.sendPrivateMessage(userId, message, source?)`
+**方法名**: `bot.user(userId).send(message, source?)` / `bot.sendPrivateMessage(userId, message, source?)`
 
 **参数**:
 | 参数名 | 类型 | 必填 | 描述 |
@@ -22,13 +22,8 @@
 | `source` | `Quotable` | ❌ | 引用消息 |
 
 ```typescript
-// 使用服务模块（推荐）
-const result = await bot.messageService.sendPrivateMessage(user_id, 'Hello!')
-if (result.success) {
-    console.log('私聊消息发送成功:', result.data)
-}
+await bot.user(user_id).send('Hello!')
 
-// 使用传统方法（向后兼容）
 await bot.sendPrivateMessage(user_id, 'Hello, World!')
 
 // 发送富媒体消息
@@ -66,6 +61,68 @@ if (result.success) {
 // 使用传统方法（向后兼容）
 const success = await bot.recallPrivateMessage(user_id, message_id)
 ```
+
+### 流式发送私聊消息
+
+仅单聊可用，群聊不支持。每个分片共用 `stream_msg_id`，`index` 从 0 递增；首片由服务端返回 `id`，后续分片必须带上。
+
+官方文档：[流式发送单聊消息](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_openid_stream_messages.post.html)
+
+**方法名**: `bot.createPrivateStream(userId, options?)` / `bot.sendPrivateStream(userId, chunks, options?)` / `bot.sendPrivateStreamMessage(userId, payload)`
+
+```typescript
+bot.on('message.private', async (event) => {
+    const stream = event.replyStream({
+        contentType: 'markdown',
+        inputMode: 'replace',
+    })
+
+    await stream.write('正在生成回答，请稍候')
+    await stream.write('。目前已完成大部分内容')
+    await stream.end('，以下是最终结果。')
+})
+
+// 直接消费 LLM token 流
+await bot.sendPrivateStream(user_id, tokenIterator, {
+    source: event,
+    contentType: 'markdown',
+    inputMode: 'replace',
+})
+```
+
+`replace` 模式下 SDK 会把已下发前缀拼成全文再发，满足官方「须以上游已下发前缀开头」的约束。`append` 则每次只下发本次新增文本。
+
+底层也可自己控分片：
+
+```typescript
+const first = await bot.sendPrivateStreamMessage(user_id, {
+    input_mode: 'replace',
+    input_state: 1,
+    index: 0,
+    content_type: 'markdown',
+    content_raw: '正在生成回答，请稍候',
+    msg_id: event.id,
+    msg_seq: 1,
+})
+
+await bot.sendPrivateStreamMessage(user_id, {
+    input_mode: 'replace',
+    input_state: 10,
+    index: 1,
+    content_type: 'markdown',
+    content_raw: '正在生成回答，请稍候。目前已完成全部内容。',
+    msg_id: event.id,
+    stream_msg_id: first.id,
+    msg_seq: 1,
+})
+```
+
+| 字段 | 说明 |
+|------|------|
+| `input_mode` | `append`（默认）拼接增量；`replace` 下发当前全文 |
+| `input_state` | `1` 生成中，`10` 生成结束 |
+| `content_type` | `text` 或 `markdown` |
+| `is_wakeup` | `true` 时不校验 `msg_id` / `event_id` 有效期 |
 
 ## 🎯 私聊消息类型
 

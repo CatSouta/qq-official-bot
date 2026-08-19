@@ -159,18 +159,18 @@ await bot.sendMessage(channelId, {
 })
 ```
 
-## 📝 消息构建器
+## 📝 组合文本
 
-使用消息构建器可以更方便地构建复杂消息：
+用 `segment` 组装 `Sendable`，不要依赖内部的 `MessageBuilder`：
 
 ```typescript
-const message = bot.messageBuilder
-    .text("这是开头")
-    .text("这是中间")
-    .text("这是结尾")
-    .build()
+import { segment } from 'qq-official-bot'
 
-await bot.sendMessage(channelId, message)
+await bot.sendGuildMessage(channelId, [
+    segment.text('这是开头'),
+    segment.text('这是中间'),
+    segment.text('这是结尾'),
+])
 ```
 
 ## ⚠️ 注意事项

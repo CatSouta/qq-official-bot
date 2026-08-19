@@ -98,8 +98,8 @@ export class GuildService {
     /**
      * 删除频道角色
      */
-    async deleteRole(roleId: string): Promise<boolean> {
-        const result = await this.request.delete(`/guilds/{guild_id}/roles/${roleId}`)
+    async deleteRole(guildId: string, roleId: string): Promise<boolean> {
+        const result = await this.request.delete(`/guilds/${guildId}/roles/${roleId}`)
         return result.status === 204
     }
 

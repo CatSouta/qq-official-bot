@@ -12,7 +12,7 @@
 
 向指定群聊发送消息。
 
-**方法名**: `bot.messageService.sendGroupMessage(groupId, message, source?)` / `bot.sendGroupMessage(groupId, message, source?)`
+**方法名**: `bot.group(groupId).send(message, source?)` / `bot.sendGroupMessage(groupId, message, source?)`
 
 **参数**:
 | 参数名 | 类型 | 必填 | 描述 |
@@ -22,13 +22,8 @@
 | `source` | `Quotable` | ❌ | 引用消息 |
 
 ```typescript
-// 使用服务模块（推荐）
-const result = await bot.messageService.sendGroupMessage(group_id, 'Hello Group!')
-if (result.success) {
-    console.log('群消息发送成功:', result.data)
-}
+await bot.group(group_id).send('Hello Group!')
 
-// 使用传统方法（向后兼容）
 await bot.sendGroupMessage(group_id, 'Hello, World!')
 
 // 发送富媒体消息
@@ -119,19 +114,10 @@ await bot.approveGroupJoinRequest(group_openid, request.member_openid, {
 ### 群成员禁言
 
 ```typescript
-const setting = await bot.getGroupMuteSetting(group_openid)
-console.log(setting.global_rule, setting.members)
+const setting = await bot.group(group_openid).muteSetting()
 
-await bot.setGroupMemberMute(group_openid, [{
-    op: 'add',
-    member_openid,
-    mute_expire_at: '2026-08-12T12:00:00+08:00',
-}])
-
-await bot.setGroupMemberMute(group_openid, [{
-    op: 'del',
-    member_openid,
-}])
+await bot.group(group_openid).mute(member_openid, '2026-08-12T12:00:00+08:00')
+await bot.group(group_openid).unmute(member_openid)
 ```
 
 单次最多设置 10 个成员；只能禁言普通成员，不能操作群主、管理员或机器人。
@@ -208,10 +194,15 @@ await bot.messageService.sendGroupMessage(group_id, [
 ```typescript
 import { segment } from 'qq-official-bot'
 
-// 图片消息
+// 公网图片：平台 URL 转存
 await bot.messageService.sendGroupMessage(group_id, 
     segment.image('https://example.com/image.jpg')
 )
+
+// 本地图片/视频：自动走官方分片上传
+await bot.sendGroupMessage(group_id, segment.image('./photo.png'))
+await bot.sendGroupMessage(group_id, segment.video('./demo.mp4'))
+```
 
 // 语音消息
 await bot.messageService.sendGroupMessage(group_id,

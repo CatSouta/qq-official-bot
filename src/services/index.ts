@@ -6,6 +6,7 @@
 export { GuildService } from './guild'
 export { ChannelService } from './channel'
 export { MessageService } from './message'
+export type { SendTarget, SendOptions, SendResult } from './message'
 export { MemberService } from './member'
 export { PermissionService } from './permission'
 export { ReactionService } from './reaction'

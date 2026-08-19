@@ -35,6 +35,8 @@ interface ImageElement {
 - **Data URL**: `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB...`
 - **Buffer 数据**: 直接传入图片的 Buffer 对象
 
+群聊/单聊发送本地图片、Buffer、Base64 时，SDK 会走官方[分片上传](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/rich-media.html)；`http(s)` 地址仍走平台 URL 转存。频道消息仍使用原来的表单/图片字段。
+
 ## 支持的图片格式
 
 - **JPEG/JPG** - 最常用的图片格式

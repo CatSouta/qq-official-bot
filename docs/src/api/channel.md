@@ -141,7 +141,7 @@ if (result.success) {
 
 向指定子频道发送消息。
 
-**方法名**: `bot.messageService.sendGuildMessage(channelId, message, source?)` / `bot.sendGuildMessage(channelId, message, source?)`
+**方法名**: `bot.channel(channelId).send(message, source?)` / `bot.sendGuildMessage(channelId, message, source?)`
 
 **参数**:
 | 参数名 | 类型 | 必填 | 描述 |
@@ -151,8 +151,7 @@ if (result.success) {
 | `source` | `Quotable` | ❌ | 引用消息 |
 
 ```typescript
-// 发送文本消息
-await bot.messageService.sendGuildMessage(channel_id, 'Hello World!')
+await bot.channel(channel_id).send('Hello World!')
 
 // 发送富媒体消息
 import { segment } from 'qq-official-bot'

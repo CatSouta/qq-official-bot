@@ -2,18 +2,17 @@
  * 消息服务类 - 负责所有消息相关的API操作
  */
 import { AxiosInstance } from 'axios'
-import { Bot } from '@/bot'
-import { GuildMessageEvent, PrivateMessageEvent } from '@/events'
+import { PrivateMessageEvent } from '@/events'
 import { Sendable, Quotable } from '@/elements'
-import { MessageBuilder, BuildResult, FileProcessor } from '@/message'
+import { MessageBuilder, BuildResult, FileProcessor, PrivateMessageStream } from '@/message'
+import type { FileUploadResult } from '@/message'
+import type { CreatePrivateStreamOptions, StreamMessagePayload, StreamMessageResult } from '@/message/stream'
+import { randomInt } from 'crypto'
 import { Message } from '@/message/parser'
-import { MessageAuditEvent } from '@/events'
-import { DMS, EmojiType } from '@/types'
+import { DMS, Dict } from '@/types'
 
 export interface SendOptions {
-    quote?: boolean;
     timeout?: number;
-    retries?: number;
 }
 
 export interface SendResult {
@@ -22,15 +21,43 @@ export interface SendResult {
     [key: string]: any;
 }
 
+export type SendTarget =
+    | { kind: 'guild'; channelId: string }
+    | { kind: 'dm'; guildId: string }
+    | { kind: 'private'; userId: string }
+    | { kind: 'group'; groupId: string }
+
+function sendPath(target: SendTarget): string {
+    switch (target.kind) {
+        case 'guild': return `/channels/${target.channelId}`
+        case 'dm': return `/dms/${target.guildId}`
+        case 'private': return `/v2/users/${target.userId}`
+        case 'group': return `/v2/groups/${target.groupId}`
+    }
+}
+
+function isGuildSend(target: SendTarget): boolean {
+    return target.kind === 'guild' || target.kind === 'dm'
+}
+
+function uploadTarget(target: SendTarget): { targetType: 'user' | 'group'; targetId: string } | undefined {
+    if (target.kind === 'private') return { targetType: 'user', targetId: target.userId }
+    if (target.kind === 'group') return { targetType: 'group', targetId: target.groupId }
+    return undefined
+}
+
 export class MessageService {
 
-    constructor(private request: AxiosInstance, private appid: string) {
-    }
+    constructor(
+        private request: AxiosInstance,
+        private appid: string,
+        private fileProcessor: FileProcessor
+    ) {}
 
     /**
      * 获取子频道消息
      */
-    async getGuildMessage(channelId: string, messageId: string): Promise<GuildMessageEvent> {
+    async getGuildMessage(channelId: string, messageId: string): Promise<Dict> {
         const { data: result } = await this.request.get(`/channels/${channelId}/messages/${messageId}`)
         return result
     }
@@ -39,7 +66,7 @@ export class MessageService {
      * 发送频道消息
      */
     async sendGuildMessage(channelId: string, message: Sendable, source?: Quotable, options: SendOptions = {}): Promise<SendResult> {
-        return await this.sendMessage(`/channels/${channelId}`, message, source, options);
+        return await this.sendMessage({ kind: 'guild', channelId }, message, source, options);
     }
 
     /**
@@ -65,7 +92,7 @@ export class MessageService {
      * 发送频道私信
      */
     async sendDirectMessage(guildId: string, message: Sendable, source?: Quotable, options: SendOptions = {}): Promise<SendResult> {
-        return await this.sendMessage(`/dms/${guildId}`, message, source, options);
+        return await this.sendMessage({ kind: 'dm', guildId }, message, source, options);
     }
 
     /**
@@ -88,7 +115,47 @@ export class MessageService {
      * 发送私聊消息
      */
     async sendPrivateMessage(userId: string, message: Sendable, source?: Quotable, options: SendOptions = {}): Promise<SendResult> {
-        return await this.sendMessage(`/v2/users/${userId}`, message, source, options);
+        return await this.sendMessage({ kind: 'private', userId }, message, source, options);
+    }
+
+    /**
+     * 发送一截单聊流式消息。后续分片需带上上一分片返回的 `id` 作为 `stream_msg_id`。
+     * 群聊不支持流式参数。
+     */
+    async sendPrivateStreamMessage(userId: string, payload: StreamMessagePayload): Promise<StreamMessageResult> {
+        const { data } = await this.request.post<StreamMessageResult>(
+            `/v2/users/${userId}/stream_messages`,
+            payload
+        )
+        return data
+    }
+
+    /**
+     * 创建单聊流式会话。`write` 发送生成中分片，`end` 发送结束分片。
+     */
+    createPrivateStream(userId: string, options: CreatePrivateStreamOptions = {}): PrivateMessageStream {
+        return new PrivateMessageStream(
+            payload => this.sendPrivateStreamMessage(userId, payload),
+            {
+                ...options,
+                msgSeq: options.msgSeq ?? randomInt(1, 1_000_000),
+            }
+        )
+    }
+
+    /**
+     * 把异步文本流写成单聊流式消息，结束后自动 `end`。
+     */
+    async sendPrivateStream(
+        userId: string,
+        chunks: AsyncIterable<string> | Iterable<string>,
+        options: CreatePrivateStreamOptions = {}
+    ): Promise<StreamMessageResult> {
+        const stream = this.createPrivateStream(userId, options)
+        for await (const chunk of chunks) {
+            if (chunk) await stream.write(chunk)
+        }
+        return stream.end()
     }
 
     /**
@@ -103,7 +170,7 @@ export class MessageService {
      * 发送群消息
      */
     async sendGroupMessage(groupId: string, message: Sendable, source?: Quotable, options: SendOptions = {}): Promise<SendResult> {
-        return await this.sendMessage(`/v2/groups/${groupId}`, message, source, options);
+        return await this.sendMessage({ kind: 'group', groupId }, message, source, options);
     }
 
     /**
@@ -117,32 +184,30 @@ export class MessageService {
     /**
      * 核心发送消息方法
      */
-    private async sendMessage(endpointPath: string, message: Sendable, source?: Quotable, options: SendOptions = {}): Promise<SendResult> {
-        // 构建消息
-        const messageBuilder = new MessageBuilder(this.appid, !endpointPath.startsWith('/v2'), source);
+    private async sendMessage(target: SendTarget, message: Sendable, source?: Quotable, options: SendOptions = {}): Promise<SendResult> {
+        const endpointPath = sendPath(target)
+        const messageBuilder = new MessageBuilder(this.appid, isGuildSend(target), source);
         const buildResult = await messageBuilder.build(message);
-        
-        // 处理文件发送
+
         if (buildResult.isFile) {
-            buildResult.messagePayload.media = await this.uploadFile(endpointPath, buildResult);
+            const uploaded = await this.uploadFile(target, buildResult);
+            buildResult.messagePayload.media = { file_info: uploaded.file_info };
         }
 
-        // 发送普通消息
         return await this.sendRegularMessage(endpointPath, buildResult, options);
-
     }
     /**
-     * 上传文件
+     * 上传文件。公网 URL 走平台转存，本地文件走官方分片上传。
      */
-    private async uploadFile(endpointPath: string, buildResult: BuildResult): Promise<Message.FileInfo> {
-        const { data: result } = await this.request.post<Message.FileInfo>(
-            endpointPath + '/files',
-            {
-                ...buildResult.filePayload,
-                srv_send_msg: false
-            }
-        );
-        return result;
+    private async uploadFile(target: SendTarget, buildResult: BuildResult): Promise<FileUploadResult> {
+        const dest = uploadTarget(target)
+        if (!dest) {
+            throw new Error('当前会话不支持 v2 富媒体上传')
+        }
+        return this.fileProcessor.uploadForMessage(buildResult.filePayload, {
+            ...dest,
+            sendMessage: false,
+        })
     }
 
     /**
@@ -186,11 +251,11 @@ export class MessageService {
     /**
      * 批量发送消息
      */
-    async sendBatch(endpointPath: string, messages: Sendable[], options: SendOptions = {}): Promise<SendResult[]> {
+    async sendBatch(target: SendTarget, messages: Sendable[], options: SendOptions = {}): Promise<SendResult[]> {
         const results = [];
 
         for (const message of messages) {
-            const result = await this.sendMessage(endpointPath, message, undefined, options);
+            const result = await this.sendMessage(target, message, undefined, options);
             results.push(result);
 
             // 添加发送间隔以避免频率限制

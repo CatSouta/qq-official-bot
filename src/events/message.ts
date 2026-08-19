@@ -1,6 +1,9 @@
-import {Announce, Bot, EmojiType, PinsMessage, Sendable} from "@";
+import type { Bot } from "@/bot";
+import type { Sendable } from "@/elements";
+import type { Announce, EmojiType, PinsMessage } from "@/types";
 import {Message} from "@/message/parser"
-import {EventParser} from "@/events";
+import type { EventParser } from "@/events"
+import type { CreatePrivateStreamOptions } from "@/message/stream"
 
 export interface MessageEvent {
     reply(message: Sendable, quote?: boolean): Promise<any>
@@ -12,13 +15,26 @@ export class PrivateMessageEvent extends Message implements MessageEvent {
         this.message_type = 'private'
         this.sub_type = sub_type
     }
+    get user() {
+        return this.bot.user(this.user_id)
+    }
+    get direct() {
+        return this.bot.direct(this.guild_id)
+    }
     async recall(){
-        if(this.sub_type==='direct') return this.bot.recallDirectMessage(this.guild_id,this.message_id)
+        if(this.sub_type==='direct') return this.direct.recall(this.message_id)
     }
     async reply(message: Sendable) {
         return this.sub_type === 'direct' ?
-            this.bot.sendDirectMessage(this.guild_id, message, this) :
-            this.bot.sendPrivateMessage(this.user_id, message, this)
+            this.direct.send(message, this) :
+            this.user.send(message, this)
+    }
+    /** 单聊流式回复，频道私信不可用 */
+    replyStream(options: CreatePrivateStreamOptions = {}) {
+        if (this.sub_type === 'direct') {
+            throw new Error('频道私信不支持流式发送')
+        }
+        return this.user.createStream({ source: this, ...options })
     }
 }
 export class MessageAuditEvent{
@@ -51,8 +67,12 @@ export class GroupMessageEvent extends Message implements MessageEvent {
         this.message_type = 'group'
     }
 
+    get group() {
+        return this.bot.group(this.group_id)
+    }
+
     async reply(message: Sendable) {
-        return this.bot.sendGroupMessage(this.group_id, message, this)
+        return this.group.send(message, this)
     }
 }
 
@@ -69,18 +89,26 @@ export class GuildMessageEvent extends Message implements MessageEvent {
         this.message_type = 'guild'
     }
 
+    get guild() {
+        return this.bot.guild(this.guild_id)
+    }
+
+    get channel() {
+        return this.bot.channel(this.channel_id)
+    }
+
     /**
      * 将该消息设置为公告
      */
     async asAnnounce(): Promise<Announce> {
-        return this.bot.setChannelAnnounce(this.guild_id, this.channel_id, this.id)
+        return this.guild.announce(this.channel_id, this.id)
     }
 
     /**
      * 置顶消息
      */
     async pin(): Promise<PinsMessage> {
-        return this.bot.pinChannelMessage(this.channel_id, this.id)
+        return this.channel.pin(this.id)
     }
 
     /**
@@ -88,7 +116,7 @@ export class GuildMessageEvent extends Message implements MessageEvent {
      * @param hidetip {boolean} 是否隐藏提示
      */
     recall(hidetip?: boolean) {
-        return this.bot.recallGuildMessage(this.channel_id, this.message_id, hidetip)
+        return this.channel.recall(this.message_id, hidetip)
     }
 
     /**
@@ -96,7 +124,7 @@ export class GuildMessageEvent extends Message implements MessageEvent {
      * @param message {Sendable} 回复内容
      */
     async reply(message: Sendable) {
-        return this.bot.sendGuildMessage(this.channel_id, message, this)
+        return this.channel.send(message, this)
     }
 
     /**
@@ -105,7 +133,7 @@ export class GuildMessageEvent extends Message implements MessageEvent {
      * @param id {`${number}`} 表态表情id
      */
     async reaction(type: EmojiType, id: `${number}`) {
-        return this.bot.addGuildMessageReaction(this.channel_id, this.message_id, type, id)
+        return this.channel.react(this.message_id, type, id)
     }
 
     /**
@@ -114,7 +142,7 @@ export class GuildMessageEvent extends Message implements MessageEvent {
      * @param id {`${number}`} 表态表情id
      */
     async deleteReaction(type: EmojiType, id: `${number}`) {
-        return this.bot.deleteGuildMessageReaction(this.channel_id, this.message_id, type, id)
+        return this.channel.deleteReaction(this.message_id, type, id)
     }
 
     /**
@@ -123,7 +151,7 @@ export class GuildMessageEvent extends Message implements MessageEvent {
      * @param id {`${number}`} 表态表情id
      */
     async getReactionMembers(type: EmojiType, id: `${number}`) {
-        return this.bot.getGuildMessageReactionMembers(this.channel_id, this.message_id, type, id)
+        return this.channel.reactionMembers(this.message_id, type, id)
     }
 }
 

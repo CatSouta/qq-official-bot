@@ -2,7 +2,7 @@
  * 日程服务类 - 负责所有日程相关的API操作
  */
 import { AxiosInstance } from 'axios'
-import { ScheduleInfo, RemindType } from '@/types'
+import { ScheduleInfo } from '@/types'
 
 export class ScheduleService {
     constructor(private request: AxiosInstance) {}
@@ -30,23 +30,9 @@ export class ScheduleService {
      */
     async createChannelSchedule(
         channelId: string,
-        name: string,
-        description: string,
-        startTimestamp: number,
-        endTimestamp: number,
-        jumpChannelId?: string,
-        remindType: RemindType = 0
+        schedule: Exclude<ScheduleInfo, 'id'>
     ): Promise<ScheduleInfo> {
-        const { data } = await this.request.post(`/channels/${channelId}/schedules`, {
-            schedule: {
-                name,
-                description,
-                start_timestamp: `${startTimestamp}`,
-                end_timestamp: `${endTimestamp}`,
-                jump_channel_id: jumpChannelId,
-                remind_type: `${remindType}`
-            }
-        })
+        const { data } = await this.request.post(`/channels/${channelId}/schedules`, { schedule })
         return data
     }
 
@@ -56,23 +42,9 @@ export class ScheduleService {
     async updateChannelSchedule(
         channelId: string,
         scheduleId: string,
-        name: string,
-        description: string,
-        startTimestamp: number,
-        endTimestamp: number,
-        jumpChannelId?: string,
-        remindType: RemindType = 0
+        schedule: Exclude<ScheduleInfo, 'id'>
     ): Promise<ScheduleInfo> {
-        const { data } = await this.request.patch(`/channels/${channelId}/schedules/${scheduleId}`, {
-            schedule: {
-                name,
-                description,
-                start_timestamp: `${startTimestamp}`,
-                end_timestamp: `${endTimestamp}`,
-                jump_channel_id: jumpChannelId,
-                remind_type: `${remindType}`
-            }
-        })
+        const { data } = await this.request.patch(`/channels/${channelId}/schedules/${scheduleId}`, { schedule })
         return data
     }
 
